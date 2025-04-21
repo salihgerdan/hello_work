@@ -23,7 +23,7 @@ fn main() -> eframe::Result {
         options,
         Box::new(|cc| {
             // This gives us image support:
-            // egui_extras::install_image_loaders(&cc.egui_ctx);
+            egui_extras::install_image_loaders(&cc.egui_ctx);
 
             Ok(Box::<Pomo>::default())
         }),
@@ -91,8 +91,8 @@ impl Default for Pomo {
         let conn = db::init_db(&config::config_dir().join("hellowork.db"));
         let pomo = Self {
             session_start: None,
-            session_length: 10,
-            //session_length: 25 * 60,
+            //session_length: 10,
+            session_length: 25 * 60,
             projects: Projects::new(&conn),
             db: conn,
         };
@@ -108,7 +108,12 @@ fn mini_ui(pomo: &mut Pomo, ui: &mut Ui) {
             .map(|x| x.name.as_str())
             .unwrap_or("Hello Work")
     ));
-    ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(40.0)));
+    ui.horizontal(|ui| {
+        ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(45.0)));
+        ui.add(egui::Image::new(egui::include_image!(
+            "../img/hello-kitty.gif"
+        )));
+    });
 }
 
 fn main_ui(pomo: &mut Pomo, ui: &mut Ui) {
@@ -137,6 +142,9 @@ fn main_ui(pomo: &mut Pomo, ui: &mut Ui) {
     if let Some(id) = clicked_proj_id {
         pomo.projects.set_active(id);
     }
+    ui.add(egui::Image::new(egui::include_image!(
+        "../img/hello-kitty.gif"
+    )));
 }
 
 impl eframe::App for Pomo {
