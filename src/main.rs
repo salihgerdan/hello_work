@@ -2,10 +2,13 @@
 
 mod config;
 mod db;
+mod projects;
 
 use std::time::{Duration, SystemTime};
 
 use eframe::egui::{self, FontId, RichText, Ui};
+use projects::Projects;
+use rusqlite::Connection;
 
 fn main() -> eframe::Result {
     //env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
@@ -28,9 +31,10 @@ fn main() -> eframe::Result {
 }
 
 struct Pomo {
-    project: String,
     session_length: u64,
     session_start: Option<SystemTime>,
+    db: Connection,
+    projects: Projects,
 }
 
 impl Pomo {
@@ -70,26 +74,30 @@ impl Pomo {
 
 impl Default for Pomo {
     fn default() -> Self {
-        Self {
-            project: "Studying".to_owned(),
+        let conn = db::init_db(&config::config_dir().join("hellowork.db"));
+        let pomo = Self {
             session_start: None,
             session_length: 25 * 60,
-        }
+            projects: Projects::new(&conn),
+            db: conn,
+        };
+        pomo
     }
 }
 
 fn mini_ui(pomo: &mut Pomo, ui: &mut Ui) {
-    ui.heading(format!("{}", pomo.project));
+    ui.heading(format!(
+        "{}",
+        pomo.projects
+            .get_active()
+            .map(|x| x.name.as_str())
+            .unwrap_or("Hello Work")
+    ));
     ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(40.0)));
 }
 
 fn main_ui(pomo: &mut Pomo, ui: &mut Ui) {
     ui.heading("Hello Work");
-    ui.horizontal(|ui| {
-        let name_label = ui.label("Project: ");
-        ui.text_edit_singleline(&mut pomo.project)
-            .labelled_by(name_label.id);
-    });
     let button = ui.button(if pomo.is_running() { "Cancel" } else { "Start" });
     if button.clicked() {
         if !pomo.is_running() {
@@ -99,14 +107,35 @@ fn main_ui(pomo: &mut Pomo, ui: &mut Ui) {
         }
     }
     ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(40.0)));
+
+    let selected_id = pomo.projects.get_active().map(|x| x.id);
+    let mut clicked_proj_id = None;
+    for proj in pomo.projects.get() {
+        let proj_radio = ui.radio(
+            selected_id.map(|id| proj.id == id).unwrap_or(false),
+            &proj.name,
+        );
+        if proj_radio.clicked() {
+            clicked_proj_id = Some(proj.id);
+        }
+    }
+    if let Some(id) = clicked_proj_id {
+        pomo.projects.set_active(id);
+    }
 }
 
 impl eframe::App for Pomo {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             if ui.available_width() > 200.0 && ui.available_height() > 200.0 {
+                ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(
+                    egui::WindowLevel::Normal,
+                ));
                 main_ui(self, ui);
             } else {
+                ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(
+                    egui::WindowLevel::AlwaysOnTop,
+                ));
                 mini_ui(self, ui);
             }
         });
