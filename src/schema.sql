@@ -16,4 +16,4 @@ CREATE TABLE IF NOT EXISTS work (
         REFERENCES projects (id)
 );
 
-INSERT INTO projects (name) VALUES ("Programming");
+--INSERT INTO projects (name) VALUES ("Programming");

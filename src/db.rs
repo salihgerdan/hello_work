@@ -54,3 +54,20 @@ pub fn update_project(db: &Connection, project: &Project) -> Result<usize> {
 pub fn delete_project(db: &Connection, project: &Project) -> Result<usize> {
     db.execute("DELETE FROM projects WHERE id = ?1", (project.id,))
 }
+
+pub struct WorkSession {
+    pub time_start: u64,
+    pub duration: u64,
+    pub project_id: Option<i32>,
+}
+
+pub fn add_work_session(db: &Connection, work_session: &WorkSession) -> Result<usize> {
+    db.execute(
+        "INSERT INTO work (time_start, duration, project_id) VALUES (?1, ?2, ?3)",
+        (
+            work_session.time_start,
+            work_session.duration,
+            work_session.project_id,
+        ),
+    )
+}

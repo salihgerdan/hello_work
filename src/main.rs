@@ -48,6 +48,20 @@ impl Pomo {
         self.session_start = None
     }
     fn finish_session(&mut self) {
+        db::add_work_session(
+            &self.db,
+            &db::WorkSession {
+                time_start: self
+                    .session_start
+                    .unwrap()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+                duration: self.session_length,
+                project_id: self.projects.get_active().map(|x| x.id),
+            },
+        )
+        .expect("Recording work session into DB failed");
         self.session_start = None
     }
     fn check_finished(&mut self) {
@@ -77,7 +91,8 @@ impl Default for Pomo {
         let conn = db::init_db(&config::config_dir().join("hellowork.db"));
         let pomo = Self {
             session_start: None,
-            session_length: 25 * 60,
+            session_length: 10,
+            //session_length: 25 * 60,
             projects: Projects::new(&conn),
             db: conn,
         };
@@ -106,7 +121,7 @@ fn main_ui(pomo: &mut Pomo, ui: &mut Ui) {
             pomo.cancel_session();
         }
     }
-    ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(40.0)));
+    ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(45.0)));
 
     let selected_id = pomo.projects.get_active().map(|x| x.id);
     let mut clicked_proj_id = None;
