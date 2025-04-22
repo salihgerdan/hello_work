@@ -135,6 +135,12 @@ fn main_ui(pomo: &mut Pomo, ui: &mut Ui) {
     ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(45.0)));
 
     let selected_id = pomo.projects.get_active().map(|x| x.id);
+
+    let null_proj_radio = ui.radio(selected_id.is_none(), "<No Project>");
+    if null_proj_radio.clicked() {
+        pomo.projects.set_active(None);
+    }
+
     let mut clicked_proj_id = None;
     for proj in pomo.projects.get() {
         let proj_radio = ui.radio(
@@ -146,7 +152,7 @@ fn main_ui(pomo: &mut Pomo, ui: &mut Ui) {
         }
     }
     if let Some(id) = clicked_proj_id {
-        pomo.projects.set_active(id);
+        pomo.projects.set_active(Some(id));
     }
     kitty(pomo, ui);
 }
