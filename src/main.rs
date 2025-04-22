@@ -100,6 +100,14 @@ impl Default for Pomo {
     }
 }
 
+fn kitty(pomo: &mut Pomo, ui: &mut Ui) {
+    if ui.ui_contains_pointer() {
+        ui.image(egui::include_image!("../img/kitty-dance2.gif"));
+    } else {
+        ui.image(egui::include_image!("../img/kitty-dance2-s.gif"));
+    }
+}
+
 fn mini_ui(pomo: &mut Pomo, ui: &mut Ui) {
     ui.heading(format!(
         "{}",
@@ -110,9 +118,7 @@ fn mini_ui(pomo: &mut Pomo, ui: &mut Ui) {
     ));
     ui.horizontal(|ui| {
         ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(45.0)));
-        ui.add(egui::Image::new(egui::include_image!(
-            "../img/hello-kitty.gif"
-        )));
+        kitty(pomo, ui);
     });
 }
 
@@ -142,9 +148,7 @@ fn main_ui(pomo: &mut Pomo, ui: &mut Ui) {
     if let Some(id) = clicked_proj_id {
         pomo.projects.set_active(id);
     }
-    ui.add(egui::Image::new(egui::include_image!(
-        "../img/hello-kitty.gif"
-    )));
+    kitty(pomo, ui);
 }
 
 impl eframe::App for Pomo {
