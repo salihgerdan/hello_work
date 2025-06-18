@@ -2,15 +2,157 @@
 
 mod config;
 mod db;
+mod pomo;
 mod projects;
 
-use std::time::{Duration, SystemTime};
-
-use eframe::egui::{self, FontId, Id, PointerButton, RichText, Sense, Ui, ViewportCommand};
+use iced::Size;
+use iced::alignment::Horizontal::Right;
+use iced::widget::right;
+use iced::window::Level;
+use iced::window::Mode;
+use iced::window::Settings;
 use projects::Projects;
 use rusqlite::Connection;
 
-fn main() -> eframe::Result {
+use iced::Task;
+use iced::keyboard;
+use iced::time;
+use iced::widget::MouseArea;
+use iced::widget::{button, center, column, row, text};
+use iced::window::{self, Id};
+use iced::{Center, Element, Subscription, Theme};
+use std::time::{Duration, Instant, SystemTime};
+
+pub fn main() -> iced::Result {
+    iced::application(Stopwatch::default, Stopwatch::update, Stopwatch::view)
+        .subscription(Stopwatch::subscription)
+        .theme(Stopwatch::theme)
+        .run()
+}
+
+#[derive(Default)]
+struct Stopwatch {
+    // geometry: (iced::Size, iced::window::Position),
+    mini_window: bool,
+    pomo: pomo::Pomo,
+}
+
+#[derive(Debug, Clone)]
+enum Message {
+    Toggle,
+    Tick,
+    DragMove,
+    MiniWindowToggle,
+}
+
+impl Stopwatch {
+    fn update(&mut self, message: Message) -> Task<Message> {
+        match message {
+            Message::Toggle => {
+                if self.pomo.is_running() {
+                    self.pomo.cancel_session();
+                } else {
+                    self.pomo.init_session();
+                }
+            }
+            Message::Tick => {}
+            Message::DragMove => {
+                return window::get_latest()
+                    .and_then(|window_id: window::Id| window::drag::<Message>(window_id));
+            }
+            Message::MiniWindowToggle => {
+                self.mini_window = !self.mini_window;
+                if self.mini_window {
+                    return window::get_latest().and_then(|window_id| -> Task<Message> {
+                        let mut settings = Settings::default();
+                        settings.size = Size::new(100.0, 80.0);
+                        settings.decorations = false;
+                        settings.level = Level::AlwaysOnTop;
+                        window::close(window_id).chain(window::open(settings).1.discard())
+                    });
+
+                    /*return window::get_latest().and_then(|window_id| -> Task<Message> {
+                        window::set_level::<Message>(window_id, window::Level::AlwaysOnTop)
+                            .chain(window::resize(window_id, Size::new(100.0, 80.0)))
+                            .chain(window::toggle_decorations(window_id))
+                    });*/
+                } else {
+                    return window::get_latest().and_then(|window_id| -> Task<Message> {
+                        window::close(window_id)
+                            .chain(window::open(Settings::default()).1.discard())
+                    });
+
+                    /*return window::get_latest().and_then(|window_id| -> Task<Message> {
+                        window::set_level::<Message>(window_id, window::Level::Normal)
+                            .chain(window::resize(window_id, Size::new(800.0, 600.0)))
+                            .chain(window::toggle_decorations(window_id))
+                    });*/
+                }
+            }
+        }
+        Task::none()
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        let tick = if self.pomo.is_running() {
+            time::every(Duration::from_secs(1)).map(|_| Message::Tick)
+        } else {
+            Subscription::none()
+        };
+
+        fn handle_hotkey(key: keyboard::Key, _modifiers: keyboard::Modifiers) -> Option<Message> {
+            use keyboard::key;
+
+            match key.as_ref() {
+                keyboard::Key::Named(key::Named::Space) => Some(Message::Toggle),
+                //keyboard::Key::Character("r") => Some(Message::Reset),
+                _ => None,
+            }
+        }
+
+        Subscription::batch(vec![tick, keyboard::on_key_press(handle_hotkey)])
+    }
+
+    fn view(&self) -> Element<Message> {
+        let duration = text(self.pomo.countdown_string()).size(40);
+
+        //let button = |label| button(text(label).align_x(Center)).padding(10).width(80);
+
+        let toggle_button = {
+            let label = if self.pomo.is_running() {
+                "Stop"
+            } else {
+                "Start"
+            };
+
+            button(text(label).align_x(Center))
+                .padding(10)
+                .width(80)
+                .on_press(Message::Toggle)
+        };
+
+        let mini_window_button = button("M").on_press(Message::MiniWindowToggle);
+
+        let content = if self.mini_window {
+            column![right(mini_window_button), center(column![duration])]
+        } else {
+            column![
+                right(mini_window_button),
+                center(column![duration, toggle_button].align_x(Center).spacing(20))
+            ]
+        };
+
+        let mouse_area = MouseArea::new(content).on_press(Message::DragMove);
+
+        mouse_area.into()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
+    }
+}
+
+/*fn main() -> eframe::Result {
     //env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -28,76 +170,6 @@ fn main() -> eframe::Result {
             Ok(Box::<Pomo>::default())
         }),
     )
-}
-
-struct Pomo {
-    session_length: u64,
-    session_start: Option<SystemTime>,
-    db: Connection,
-    projects: Projects,
-}
-
-impl Pomo {
-    fn is_running(&self) -> bool {
-        self.session_start.is_some()
-    }
-    fn init_session(&mut self) {
-        self.session_start = Some(SystemTime::now())
-    }
-    fn cancel_session(&mut self) {
-        self.session_start = None
-    }
-    fn finish_session(&mut self) {
-        db::add_work_session(
-            &self.db,
-            &db::WorkSession {
-                time_start: self
-                    .session_start
-                    .unwrap()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
-                duration: self.session_length,
-                project_id: self.projects.get_active().map(|x| x.id),
-            },
-        )
-        .expect("Recording work session into DB failed");
-        self.session_start = None
-    }
-    fn check_finished(&mut self) {
-        self.time_elapsed().map(|elapsed| {
-            if elapsed.as_secs() >= self.session_length {
-                self.finish_session();
-            }
-        });
-    }
-    fn time_elapsed(&self) -> Option<Duration> {
-        self.session_start.and_then(|s| s.elapsed().ok())
-    }
-    fn countdown_string(&self) -> String {
-        match self.time_elapsed() {
-            Some(t) => {
-                let secs = t.as_secs();
-                let rem = self.session_length - secs;
-                format!("{:02}:{:02}", rem / 60, rem % 60)
-            }
-            None => "--:--".to_owned(),
-        }
-    }
-}
-
-impl Default for Pomo {
-    fn default() -> Self {
-        let conn = db::init_db(&config::config_dir().join("hellowork.db"));
-        let pomo = Self {
-            session_start: None,
-            //session_length: 10,
-            session_length: 25 * 60,
-            projects: Projects::new(&conn),
-            db: conn,
-        };
-        pomo
-    }
 }
 
 fn kitty(pomo: &mut Pomo, ui: &mut Ui) {
@@ -189,3 +261,4 @@ impl eframe::App for Pomo {
         self.check_finished();
     }
 }
+*/
