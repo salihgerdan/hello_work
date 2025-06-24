@@ -7,26 +7,21 @@ mod projects;
 
 use iced::Padding;
 use iced::Size;
-use iced::alignment::Horizontal::Right;
-use iced::wgpu::rwh::HasRawWindowHandle;
 use iced::widget::center_x;
 use iced::widget::pick_list;
 use iced::widget::right;
 use iced::widget::scrollable;
 use iced::window::Level;
-use iced::window::Mode;
 use iced::window::Settings;
-use projects::Projects;
-use rusqlite::Connection;
 
 use iced::Task;
 use iced::keyboard;
 use iced::time;
 use iced::widget::MouseArea;
 use iced::widget::{button, center, column, row, text};
-use iced::window::{self, Id};
+use iced::window;
 use iced::{Center, Element, Subscription, Theme};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::Duration;
 
 use crate::db::Project;
 
@@ -119,7 +114,7 @@ impl Stopwatch {
                 }
             }
             Message::ProjectSelected(project) => {
-                dbg!(project);
+                self.pomo.projects.set_active(Some(project.id));
             }
             Message::TabSelected(tab) => {
                 self.current_tab = tab;
@@ -140,7 +135,6 @@ impl Stopwatch {
 
             match key.as_ref() {
                 keyboard::Key::Named(key::Named::Space) => Some(Message::Toggle),
-                //keyboard::Key::Character("r") => Some(Message::Reset),
                 _ => None,
             }
         }
@@ -169,7 +163,18 @@ impl Stopwatch {
                 .on_press(Message::Toggle)
         };
 
-        center(column![duration, toggle_button].align_x(Center).spacing(20)).into()
+        let project_picker = pick_list(
+            self.pomo.projects.get(),
+            self.pomo.projects.get_active(),
+            |p| Message::ProjectSelected(p),
+        );
+
+        center(
+            column![duration, toggle_button, project_picker]
+                .align_x(Center)
+                .spacing(20),
+        )
+        .into()
     }
 
     fn projects_tab_view(&self) -> Element<Message> {
