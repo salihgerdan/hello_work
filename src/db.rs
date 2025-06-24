@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fmt::Display, path::Path};
 
 use rusqlite::{Connection, Result};
 
@@ -8,12 +8,19 @@ pub fn init_db(path: &Path) -> Connection {
     conn
 }
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Project {
     pub id: i32,
     pub name: String,
     pub target_hours: Option<f32>,
     pub parent: Option<i32>,
     pub children: Vec<i32>,
+}
+
+impl Display for Project {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.name)
+    }
 }
 
 pub fn get_projects(db: &Connection) -> Result<Vec<Project>> {

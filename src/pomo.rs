@@ -6,7 +6,7 @@ pub struct Pomo {
     pub session_length: u64,
     pub session_start: Option<SystemTime>,
     db: Connection,
-    projects: Projects,
+    pub projects: Projects,
 }
 
 impl Pomo {
