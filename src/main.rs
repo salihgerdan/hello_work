@@ -106,6 +106,7 @@ impl App {
                             .chain(window::toggle_decorations(window_id))
                     });*/
                 } else {
+                    self.current_tab = Tab::Main; // Always switch to main tab, stats tab crashes when coming from mini
                     return window::get_latest().and_then(|window_id| -> Task<Message> {
                         window::close(window_id).chain({
                             let mut settings = Settings::default();
