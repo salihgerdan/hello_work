@@ -5,7 +5,7 @@ use std::time::{Duration, Instant, SystemTime};
 pub struct Pomo {
     pub session_length: u64,
     pub session_start: Option<SystemTime>,
-    db: Connection,
+    pub db: Connection,
     pub projects: Projects,
 }
 

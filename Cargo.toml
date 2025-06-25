@@ -7,7 +7,8 @@ edition = "2024"
 pliced = { git = "https://github.com/kunerd/pliced", rev = "8fff52c7426df2f7b86487e2e90ffdb129bfb300" }
 directories = "6.0.0"
 rusqlite = { version = "0.35.0", features = ["bundled"] }
-#plotters = "0.3"
+chrono = "0.4.41"
+plotters = "0.3"
 #iced = { version = "0.13.1", features = ["smol", "wgpu"] }
 
 [dependencies.iced]

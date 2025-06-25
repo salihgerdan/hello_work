@@ -1,5 +1,6 @@
 use std::{fmt::Display, path::Path};
 
+use chrono::{NaiveDate, NaiveTime};
 use rusqlite::{Connection, Result};
 
 pub fn init_db(path: &Path) -> Connection {
@@ -95,4 +96,25 @@ pub fn add_work_session(db: &Connection, work_session: &WorkSession) -> Result<u
             work_session.project_id,
         ),
     )
+}
+
+pub fn get_work_hours_for_day(db: &Connection, day: &NaiveDate) -> Result<f32> {
+    let day_start = day
+        .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
+        .and_utc()
+        .timestamp();
+    let next_day_start = day
+        .succ_opt()
+        .unwrap()
+        .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
+        .and_utc()
+        .timestamp();
+    db.query_row::<Option<f32>, _, _>(
+        "SELECT SUM(duration)
+        FROM work
+        WHERE time_start >= ?1 AND time_start < ?2",
+        (day_start, next_day_start),
+        |row| row.get(0),
+    )
+    .map(|secs| secs.unwrap_or(0.0) / (60.0 * 60.0))
 }

@@ -1,5 +1,3 @@
-use std::ops::Index;
-
 use rusqlite::Connection;
 
 use crate::db::{self, Project};

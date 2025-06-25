@@ -4,7 +4,11 @@ mod config;
 mod db;
 mod pomo;
 mod projects;
+mod stats;
 
+use chrono::Days;
+use chrono::NaiveDate;
+use chrono::Utc;
 use iced::Length;
 use iced::Padding;
 use iced::Size;
@@ -23,8 +27,8 @@ use iced::widget::MouseArea;
 use iced::widget::{button, center, column, row, text};
 use iced::window;
 use iced::{Center, Element, Subscription, Theme};
-//use plotters::prelude::*;
 use pliced::{Chart, line_series, point_series};
+use plotters::prelude::*;
 use std::time::Duration;
 
 use crate::db::Project;
@@ -35,9 +39,9 @@ const MINI_W: f32 = 110.0;
 const MINI_H: f32 = 65.0;
 
 pub fn main() -> iced::Result {
-    iced::application("Hello Work", Stopwatch::update, Stopwatch::view)
-        .subscription(Stopwatch::subscription)
-        .theme(Stopwatch::theme)
+    iced::application("Hello Work", App::update, App::view)
+        .subscription(App::subscription)
+        .theme(App::theme)
         .window_size(Size::new(MAIN_W, MAIN_H))
         .run()
 }
@@ -51,7 +55,7 @@ enum Tab {
 }
 
 #[derive(Default)]
-struct Stopwatch {
+struct App {
     // geometry: (iced::Size, iced::window::Position),
     mini_window: bool,
     current_tab: Tab,
@@ -68,7 +72,7 @@ enum Message {
     TabSelected(Tab),
 }
 
-impl Stopwatch {
+impl App {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Toggle => {
@@ -194,26 +198,7 @@ impl Stopwatch {
     }
 
     fn stats_tab_view(&self) -> Element<Message> {
-        let data = (-50..=50)
-            .map(|x| x as f32 / 50.0)
-            .map(|x| (x, x * x))
-            .collect::<Vec<_>>();
-        container(
-            Chart::new()
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .push_series(
-                    line_series(data.iter().copied()).color(iced::Color::from_rgb8(255, 0, 0)),
-                )
-                .push_series(
-                    line_series(data.iter().copied().map(|(x, y)| (x, y * 0.5)))
-                        .color(iced::Color::from_rgb8(0, 255, 0)),
-                )
-                .push_series(point_series(
-                    data.iter().copied().map(|(x, y)| (x + 0.5, y * 2.0)),
-                )),
-        )
-        .into()
+        Chart::from_program(self).into()
     }
 
     fn view(&self) -> Element<Message> {
@@ -262,113 +247,49 @@ impl Stopwatch {
     }
 }
 
-/*fn main() -> eframe::Result {
-    //env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([320.0, 240.0])
-            .with_decorations(false),
-        ..Default::default()
-    };
-    eframe::run_native(
-        "Hello Work",
-        options,
-        Box::new(|cc| {
-            // This gives us image support:
-            egui_extras::install_image_loaders(&cc.egui_ctx);
+impl pliced::Program<Message> for App {
+    type State = ();
 
-            Ok(Box::<Pomo>::default())
-        }),
-    )
-}
+    fn draw(
+        &self,
+        _state: &Self::State,
+        chart: &mut plotters::prelude::ChartBuilder<pliced::IcedChartBackend<iced::Renderer>>,
+        _theme: &iced::Theme,
+        _bounds: iced::Rectangle,
+        _cursor: iced::mouse::Cursor,
+    ) {
+        let data = stats::last_week_chart(&self.pomo.db);
 
-fn kitty(pomo: &mut Pomo, ui: &mut Ui) {
-    if ui.ui_contains_pointer() {
-        ui.image(egui::include_image!("../img/kitty-dance2.gif"));
-    } else {
-        ui.image(egui::include_image!("../img/kitty-dance2-s.gif"));
+        let y_max = data
+            .iter()
+            .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+            .unwrap()
+            .1;
+
+        let mut chart = chart
+            .margin(5)
+            .x_label_area_size(30)
+            .y_label_area_size(30)
+            .build_cartesian_2d(
+                Utc::now()
+                    .date_naive()
+                    .checked_sub_days(Days::new(6))
+                    .unwrap()..Utc::now().date_naive(),
+                0.0_f32..y_max,
+            )
+            .unwrap();
+
+        chart.configure_mesh().draw().unwrap();
+
+        chart
+            .draw_series(
+                AreaSeries::new(
+                    data.iter().map(|x| *x), // The data iter
+                    0.0,                     // Baseline
+                    &RED.mix(0.2),           // Make the series opac
+                )
+                .border_style(&RED), // Make a brighter border
+            )
+            .unwrap();
     }
 }
-
-fn mini_ui(pomo: &mut Pomo, ui: &mut Ui) {
-    ui.heading(format!(
-        "{}",
-        pomo.projects
-            .get_active()
-            .map(|x| x.name.as_str())
-            .unwrap_or("Hello Work")
-    ));
-    ui.horizontal(|ui| {
-        ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(45.0)));
-        kitty(pomo, ui);
-    });
-}
-
-fn main_ui(pomo: &mut Pomo, ui: &mut Ui) {
-    ui.heading("Hello Work");
-    let button = ui.button(if pomo.is_running() { "Cancel" } else { "Start" });
-    if button.clicked() {
-        if !pomo.is_running() {
-            pomo.init_session()
-        } else {
-            pomo.cancel_session();
-        }
-    }
-    ui.label(RichText::new(pomo.countdown_string()).font(FontId::proportional(45.0)));
-
-    let selected_id = pomo.projects.get_active().map(|x| x.id);
-
-    let null_proj_radio = ui.radio(selected_id.is_none(), "<No Project>");
-    if null_proj_radio.clicked() {
-        pomo.projects.set_active(None);
-    }
-
-    let mut clicked_proj_id = None;
-    for proj in pomo.projects.get() {
-        let proj_radio = ui.radio(
-            selected_id.map(|id| proj.id == id).unwrap_or(false),
-            &proj.name,
-        );
-        if proj_radio.clicked() {
-            clicked_proj_id = Some(proj.id);
-        }
-    }
-    if let Some(id) = clicked_proj_id {
-        pomo.projects.set_active(Some(id));
-    }
-    kitty(pomo, ui);
-}
-
-impl eframe::App for Pomo {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            let window_move_response = ui.interact(
-                ui.max_rect(),
-                Id::new("window_move"),
-                Sense::click_and_drag(),
-            );
-            if window_move_response.drag_started_by(PointerButton::Primary) {
-                ctx.send_viewport_cmd(ViewportCommand::StartDrag);
-            }
-
-            if ui.available_width() > 200.0 && ui.available_height() > 200.0 {
-                ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(
-                    egui::WindowLevel::Normal,
-                ));
-                main_ui(self, ui);
-            } else {
-                ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(
-                    egui::WindowLevel::AlwaysOnTop,
-                ));
-                mini_ui(self, ui);
-            }
-        });
-
-        // repaint once the timer ticks to a whole second
-        self.time_elapsed().map(|x| {
-            ctx.request_repaint_after(Duration::from_millis(1000 - x.subsec_millis() as u64));
-        });
-        self.check_finished();
-    }
-}
-*/
