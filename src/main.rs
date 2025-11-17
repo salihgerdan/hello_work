@@ -18,6 +18,7 @@ use iced::widget::container;
 use iced::widget::pick_list;
 use iced::widget::right;
 use iced::widget::scrollable;
+use iced::widget::text_input;
 use iced::window::Level;
 use iced::window::Settings;
 
@@ -53,6 +54,7 @@ enum Tab {
     Main,
     Projects,
     Stats,
+    Settings,
 }
 
 #[derive(Default)]
@@ -71,6 +73,7 @@ enum Message {
     MiniWindowToggle,
     ProjectSelected(Project),
     TabSelected(Tab),
+    SessionLengthChanged(String),
 }
 
 impl App {
@@ -128,6 +131,12 @@ impl App {
             }
             Message::TabSelected(tab) => {
                 self.current_tab = tab;
+            }
+            Message::SessionLengthChanged(session_length) => {
+                // session length is input as minutes in the interface
+                if let Ok(len) = session_length.parse::<u64>() {
+                    self.pomo.session_length = len * 60;
+                }
             }
         }
         Task::none()
@@ -211,13 +220,22 @@ impl App {
         Chart::from_program(self).into()
     }
 
+    fn settings_tab_view(&self) -> Element<Message> {
+        center(scrollable(column![row![
+            text_input("", &(self.pomo.session_length / 60).to_string())
+                .on_input(Message::SessionLengthChanged)
+        ]]))
+        .into()
+    }
+
     fn view(&self) -> Element<Message> {
         //let button = |label| button(text(label).align_x(Center)).padding(10).width(80);
 
         let tabs = row![
             button("Main").on_press(Message::TabSelected(Tab::Main)),
             button("Projects").on_press(Message::TabSelected(Tab::Projects)),
-            button("Stats").on_press(Message::TabSelected(Tab::Stats))
+            button("Stats").on_press(Message::TabSelected(Tab::Stats)),
+            button("Settings").on_press(Message::TabSelected(Tab::Settings))
         ]
         .spacing(10);
 
@@ -240,6 +258,7 @@ impl App {
                     Tab::Main => self.main_tab_view(),
                     Tab::Projects => self.projects_tab_view(),
                     Tab::Stats => self.stats_tab_view(),
+                    Tab::Settings => self.settings_tab_view(),
                 }
             ]
             .into()
