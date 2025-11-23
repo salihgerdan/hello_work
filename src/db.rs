@@ -98,7 +98,7 @@ pub fn add_work_session(db: &Connection, work_session: &WorkSession) -> Result<u
     )
 }
 
-pub fn get_work_hours_for_day(db: &Connection, day: &NaiveDate) -> Result<f32> {
+pub fn get_work_hours_for_day(db: &Connection, day: &NaiveDate) -> Result<Vec<(i32, String, f32)>> {
     let day_start = day
         .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
         .and_utc()
@@ -109,12 +109,23 @@ pub fn get_work_hours_for_day(db: &Connection, day: &NaiveDate) -> Result<f32> {
         .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
         .and_utc()
         .timestamp();
-    db.query_row::<Option<f32>, _, _>(
-        "SELECT SUM(duration)
+    let mut stmt = db.prepare(
+        "SELECT projects.id, projects.name, SUM(work.duration)
         FROM work
-        WHERE time_start >= ?1 AND time_start < ?2",
-        (day_start, next_day_start),
-        |row| row.get(0),
-    )
-    .map(|secs| secs.unwrap_or(0.0) / (60.0 * 60.0))
+        WHERE time_start >= ?1 AND time_start < ?2
+		JOIN projects ON work.project_id=projects.id
+		GROUP BY work.project_id;",
+    )?;
+
+    let work_hours_per_project = stmt
+        .query_map([day_start, next_day_start], |row| {
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get::<_, f32>(2)? / (60.0 * 60.0), // convert secs to hours
+            ))
+        })?
+        .collect::<Result<Vec<(i32, String, f32)>>>();
+
+    work_hours_per_project
 }

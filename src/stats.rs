@@ -3,7 +3,7 @@ use rusqlite::Connection;
 
 use crate::db::{self, WorkSession};
 
-pub fn last_week_chart(conn: &Connection) -> Vec<(NaiveDate, f32)> {
+pub fn last_week_chart(conn: &Connection) -> Vec<(NaiveDate, Vec<(i32, String, f32)>)> {
     let mut day = chrono::Utc::now().date_naive();
     let mut stats = vec![];
     for i in 0..7 {

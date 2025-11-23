@@ -6,6 +6,7 @@ mod pomo;
 mod projects;
 mod stats;
 
+use chrono::Datelike;
 use chrono::Days;
 use chrono::NaiveDate;
 use chrono::Utc;
@@ -30,6 +31,8 @@ use iced::widget::{button, center, column, row, text};
 use iced::window;
 use iced::{Center, Element, Subscription, Theme};
 use pliced::{Chart, line_series, point_series};
+use plotters::element::PointCollection;
+use plotters::element::PointElement;
 use plotters::prelude::*;
 use std::time::Duration;
 
@@ -190,6 +193,8 @@ impl App {
                 .on_press(Message::Toggle)
         };
 
+        // let system_info = iced::system::fetch_information().;
+
         let project_picker = pick_list(
             self.pomo.projects.get(),
             self.pomo.projects.get_active(),
@@ -197,9 +202,14 @@ impl App {
         );
 
         center(
-            column![duration, toggle_button, project_picker]
-                .align_x(Center)
-                .spacing(20),
+            column![
+                duration,
+                toggle_button,
+                // system_info,
+                project_picker
+            ]
+            .align_x(Center)
+            .spacing(20),
         )
         .into()
     }
@@ -291,6 +301,7 @@ impl pliced::Program<Message> for App {
 
         let y_max = data
             .iter()
+            .map(|(x, y)| (x, y.into_iter().fold(0.0, |acc, entry| acc + entry.2)))
             .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
             .unwrap()
             .1;
@@ -308,14 +319,21 @@ impl pliced::Program<Message> for App {
             )
             .unwrap();
 
-        chart.configure_mesh().draw().unwrap();
+        chart
+            .configure_mesh()
+            .label_style(TextStyle::from(("sans-serif", 15).into_font()).color(&WHITE))
+            // take out the year display from the dates
+            .x_label_formatter(&|x| format!("{}-{}", x.month(), x.day()))
+            .draw()
+            .unwrap();
 
         chart
             .draw_series(
                 AreaSeries::new(
-                    data.iter().map(|x| *x), // The data iter
-                    0.0,                     // Baseline
-                    &RED.mix(0.2),           // Make the series opac
+                    data.iter()
+                        .map(|x| (x.0, x.1.iter().fold(0.0, |acc, entry| acc + entry.2))),
+                    0.0,           // Baseline
+                    &RED.mix(0.2), // Make the series opac
                 )
                 .border_style(&RED), // Make a brighter border
             )
