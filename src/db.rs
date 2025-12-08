@@ -36,6 +36,8 @@ pub fn get_projects(db: &Connection) -> Result<Vec<Project>> {
             projects p
         LEFT JOIN 
             projects c ON p.id = c.parent
+        WHERE
+			p.archived == 0
         GROUP BY 
             p.id;",
     )?;
@@ -78,8 +80,13 @@ pub fn update_project(db: &Connection, project: &Project) -> Result<usize> {
     )
 }
 
-pub fn delete_project(db: &Connection, id: usize) -> Result<usize> {
-    db.execute("DELETE FROM projects WHERE id = ?1", (id,))
+pub fn archive_project(db: &Connection, id: usize) -> Result<usize> {
+    db.execute(
+        "UPDATE projects
+        SET archived = 1
+        WHERE id = ?1",
+        (id,),
+    )
 }
 
 pub struct WorkSession {

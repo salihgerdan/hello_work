@@ -40,7 +40,7 @@ impl Projects {
                     project
                         .children
                         .iter()
-                        .map(|id| all_projects.iter().find(|p| p.id == *id).unwrap())
+                        .flat_map(|id| all_projects.iter().find(|p| p.id == *id))
                         .flat_map(|p| recurse(p, all_projects, depth + 1)),
                 )
                 .collect()
@@ -93,9 +93,9 @@ impl Projects {
             edited.name = name;
         }
     }
-    pub fn delete_edited_item(&mut self, conn: &Connection) {
+    pub fn archive_edited_item(&mut self, conn: &Connection) {
         if let Some(edited) = self.edited.as_ref() {
-            db::delete_project(conn, edited.id).expect("Failed to delete project");
+            db::archive_project(conn, edited.id).expect("Failed to archive project");
         }
         self.edited = None;
         self.fetch(conn);

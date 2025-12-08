@@ -73,7 +73,7 @@ enum Message {
     NewProject { parent: Option<usize> },
     EditProjectInitiate(usize),
     EditProjectFinish,
-    EditProjectDelete,
+    EditProjectArchive,
     EditProjectNameInput(String),
     TabSelected(Tab),
     SessionLengthChanged(String),
@@ -162,8 +162,8 @@ impl App {
             Message::EditProjectNameInput(name) => {
                 self.pomo.projects.set_edited_name(name);
             }
-            Message::EditProjectDelete => {
-                self.pomo.projects.delete_edited_item(&self.pomo.db);
+            Message::EditProjectArchive => {
+                self.pomo.projects.archive_edited_item(&self.pomo.db);
             }
             Message::TabSelected(tab) => {
                 self.current_tab = tab;
@@ -257,7 +257,7 @@ impl App {
     fn projects_tab_view(&self) -> Element<Message> {
         let config_icon = include_bytes!("../img/config.png");
         let add_icon = include_bytes!("../img/add.png");
-        let remove_icon = include_bytes!("../img/remove.png");
+        let archive_icon = include_bytes!("../img/archive.png");
         let okay_icon = include_bytes!("../img/okay.png");
 
         let projects_list = column(self.pomo.projects.get_all_tree_style().into_iter().map(
@@ -288,11 +288,11 @@ impl App {
                             )
                             .on_press(Message::EditProjectFinish),
                             button(
-                                image(image::Handle::from_bytes(&remove_icon[..]))
+                                image(image::Handle::from_bytes(&archive_icon[..]))
                                     .height(16)
                                     .width(16)
                             )
-                            .on_press(Message::EditProjectDelete),
+                            .on_press(Message::EditProjectArchive),
                         ])
                     ]
                     .height(32)
