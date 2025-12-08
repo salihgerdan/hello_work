@@ -21,7 +21,7 @@ impl Projects {
         p.fetch(conn);
         p
     }
-    fn fetch(&mut self, conn: &Connection) {
+    pub fn fetch(&mut self, conn: &Connection) {
         self.projects.truncate(0);
         self.projects
             .append(&mut db::get_projects(conn).expect("Failed to fetch projects"));

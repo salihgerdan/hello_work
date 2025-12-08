@@ -34,6 +34,7 @@ impl Pomo {
             },
         )
         .expect("Recording work session into DB failed");
+        self.projects.fetch(&self.db); // refresh total work durations per project
         self.session_start = None
     }
     pub fn check_finished(&mut self) {

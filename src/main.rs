@@ -309,6 +309,7 @@ impl App {
                         .font(iced::Font::MONOSPACE),
                         right(if self.pomo.projects.get_edited_id().is_none() {
                             row![
+                                text!("{ :<4}", (p.total_hours * 10.0).round() / 10.0),
                                 button(
                                     image(image::Handle::from_bytes(&config_icon[..]))
                                         .height(16)

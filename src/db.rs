@@ -16,6 +16,7 @@ pub struct Project {
     pub target_hours: Option<f32>,
     pub parent: Option<usize>,
     pub children: Vec<usize>,
+    pub total_hours: f32,
 }
 
 impl Display for Project {
@@ -27,19 +28,47 @@ impl Display for Project {
 pub fn get_projects(db: &Connection) -> Result<Vec<Project>> {
     let mut stmt = db.prepare(
         "SELECT 
-            p.id,
-            p.name,
-            p.target_hours,
-            p.parent,
-            GROUP_CONCAT(c.id) AS children
-        FROM 
-            projects p
-        LEFT JOIN 
-            projects c ON p.id = c.parent
-        WHERE
-			p.archived == 0
-        GROUP BY 
-            p.id;",
+                p.id,
+                p.name,
+                p.target_hours,
+                p.parent,
+                GROUP_CONCAT(c.id) AS children,
+                -- Use COALESCE to treat NULL as 0 and SUM the parent's work and the children's work
+                COALESCE(parent_work.duration, 0) + COALESCE(child_work.total_children_duration, 0) AS total_duration
+            FROM 
+                projects p
+            LEFT JOIN
+                -- Calculate the work hours for the parent project
+                (
+                    SELECT
+                        project_id,
+                        SUM(duration) AS duration
+                    FROM
+                        work
+                    GROUP BY
+                        project_id
+                ) parent_work ON p.id = parent_work.project_id
+            LEFT JOIN
+                -- Calculate the total work hours for all CHILDREN
+                (
+                    SELECT
+                        c_work.parent AS parent_id,
+                        SUM(w.duration) AS total_children_duration
+                    FROM
+                        projects c_work
+                    INNER JOIN -- Use INNER JOIN here, we only care about children with work
+                        work w ON c_work.id = w.project_id
+                    WHERE
+                        c_work.parent IS NOT NULL -- Only look at projects that are children
+                    GROUP BY
+                        c_work.parent
+                ) child_work ON p.id = child_work.parent_id
+            LEFT JOIN 
+                projects c ON p.id = c.parent
+            WHERE
+                p.archived = 0
+            GROUP BY 
+                p.id;",
     )?;
     let projects = stmt
         .query_map([], |row| {
@@ -52,6 +81,7 @@ pub fn get_projects(db: &Connection) -> Result<Vec<Project>> {
                     .get::<_, Option<String>>(4)?
                     .map(|s| s.split(",").map(|x| x.parse().unwrap()).collect())
                     .unwrap_or_default(),
+                total_hours: row.get::<_, f32>(5)? / (60.0 * 60.0),
             })
         })?
         .collect();
