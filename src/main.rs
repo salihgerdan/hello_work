@@ -345,10 +345,16 @@ impl App {
     }
 
     fn settings_tab_view(&self) -> Element<Message> {
-        center(scrollable(column![row![
-            text_input("", &(self.pomo.session_length / 60).to_string())
-                .on_input(Message::SessionLengthChanged)
-        ]]))
+        center(scrollable(
+            column![row![
+                text("Session Length: "),
+                text_input("", &(self.pomo.session_length / 60).to_string())
+                    .on_input(Message::SessionLengthChanged)
+            ]]
+            .spacing(3)
+            .max_width(500)
+            .padding(20),
+        ))
         .into()
     }
 
