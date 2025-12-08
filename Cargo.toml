@@ -14,4 +14,4 @@ plotters = "0.3"
 [dependencies.iced]
 git = "https://github.com/iced-rs/iced.git"
 rev = "4b075b9731f4658a885357024cc77dee10e223c3" # match to pliced version
-features = ["smol"]
+features = ["smol", "system", "image"]

@@ -8,6 +8,7 @@ use crate::db::{self, Project};
 pub struct Projects {
     projects: Vec<Project>,
     active: Option<usize>,
+    edited: Option<Project>,
 }
 
 impl Projects {
@@ -15,6 +16,7 @@ impl Projects {
         let mut p = Projects {
             projects: vec![],
             active: None,
+            edited: None,
         };
         p.fetch(conn);
         p
@@ -50,17 +52,44 @@ impl Projects {
             .flat_map(|p| recurse(p, all_projects, 0))
             .collect()
     }
-    pub fn get(&self, id: i32) -> Option<&Project> {
+    pub fn get(&self, id: usize) -> Option<&Project> {
         self.projects.iter().find(|p| p.id == id)
     }
     pub fn add(&mut self, project: Project, conn: &Connection) {
         db::add_project(conn, &project).expect("Failed to add project");
         self.fetch(conn);
     }
-    pub fn set_active(&mut self, id: Option<i32>) {
-        self.active = id.and_then(|id| self.projects.iter().position(|x| x.id == id));
+    pub fn set_active(&mut self, id: Option<usize>) {
+        self.active = id;
     }
-    pub fn get_active(&self) -> Option<&Project> {
-        self.active.and_then(|x| self.projects.get(x))
+    pub fn get_active(&self) -> Option<usize> {
+        self.active
+    }
+    pub fn get_active_project(&self) -> Option<&Project> {
+        self.active
+            .and_then(|x| self.projects.iter().find(|p| p.id == x))
+    }
+    pub fn initiate_edit(&mut self, id: Option<usize>) {
+        self.edited = id
+            .and_then(|id| self.projects.iter().find(|p| p.id == id))
+            .cloned();
+    }
+    pub fn finish_edit(&mut self, conn: &Connection) {
+        if let Some(edited) = self.edited.as_ref() {
+            db::update_project(conn, edited).expect("Failed to update project");
+        }
+        self.edited = None;
+        self.fetch(conn);
+    }
+    pub fn get_edited(&self) -> Option<&Project> {
+        self.edited.as_ref()
+    }
+    pub fn get_edited_id(&self) -> Option<usize> {
+        self.edited.as_ref().map(|p| p.id)
+    }
+    pub fn set_edited_name(&mut self, name: String) {
+        if let Some(edited) = self.edited.as_mut() {
+            edited.name = name;
+        }
     }
 }

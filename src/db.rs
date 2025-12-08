@@ -11,11 +11,11 @@ pub fn init_db(path: &Path) -> Connection {
 
 #[derive(PartialEq, Clone, Debug, Default)]
 pub struct Project {
-    pub id: i32,
+    pub id: usize,
     pub name: String,
     pub target_hours: Option<f32>,
-    pub parent: Option<i32>,
-    pub children: Vec<i32>,
+    pub parent: Option<usize>,
+    pub children: Vec<usize>,
 }
 
 impl Display for Project {
@@ -84,7 +84,7 @@ pub fn delete_project(db: &Connection, project: &Project) -> Result<usize> {
 pub struct WorkSession {
     pub time_start: u64,
     pub duration: u64,
-    pub project_id: Option<i32>,
+    pub project_id: Option<usize>,
 }
 
 pub fn add_work_session(db: &Connection, work_session: &WorkSession) -> Result<usize> {

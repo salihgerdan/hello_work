@@ -30,7 +30,7 @@ impl Pomo {
                     .unwrap()
                     .as_secs(),
                 duration: self.session_length,
-                project_id: self.projects.get_active().map(|x| x.id),
+                project_id: self.projects.get_active(),
             },
         )
         .expect("Recording work session into DB failed");
