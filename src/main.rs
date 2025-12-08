@@ -9,6 +9,7 @@ mod stats;
 use chrono::Datelike;
 use chrono::Days;
 use chrono::Utc;
+use iced::Application;
 use iced::Padding;
 use iced::Size;
 use iced::widget::center_x;
@@ -38,12 +39,15 @@ const MAIN_H: f32 = 600.0;
 const MINI_W: f32 = 110.0;
 const MINI_H: f32 = 65.0;
 
+const FONT_SANS: iced::Font = iced::Font::with_name("Lato");
+
 pub fn main() -> iced::Result {
-    iced::application(App::title, App::update, App::view)
+    let app = iced::application(App::title, App::update, App::view)
         .subscription(App::subscription)
         .theme(App::theme)
-        .window_size(Size::new(MAIN_W, MAIN_H))
-        .run()
+        .default_font(FONT_SANS)
+        .window_size(Size::new(MAIN_W, MAIN_H));
+    app.run_with(move || App::new())
 }
 
 #[derive(Default, Debug, Clone)]
@@ -65,6 +69,7 @@ struct App {
 
 #[derive(Debug, Clone)]
 enum Message {
+    Ignore,
     Toggle,
     Tick,
     DragMove,
@@ -80,8 +85,15 @@ enum Message {
 }
 
 impl App {
+    pub fn new() -> (Self, Task<Message>) {
+        let commands = vec![
+            iced::font::load(include_bytes!("../img/Lato-Regular.ttf")).map(|_| Message::Ignore),
+        ];
+        (Self::default(), Task::batch(commands))
+    }
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Ignore => {}
             Message::Toggle => {
                 if self.pomo.is_running() {
                     self.pomo.cancel_session();
@@ -234,8 +246,8 @@ impl App {
                 .map(|(depth, p)| {
                     let mut p = p.clone();
                     p.name = (0..depth)
-                        .map(|_| " ")
-                        .chain(iter::once("▹"))
+                        .map(|_| "  ")
+                        .chain(iter::once("› "))
                         .collect::<String>()
                         + &p.name;
                     p
@@ -243,8 +255,7 @@ impl App {
                 .collect::<Vec<_>>(),
             self.pomo.projects.get_active_project(),
             |p| Message::ProjectSelected(p.id),
-        )
-        .font(iced::Font::MONOSPACE);
+        );
 
         center(
             column![duration, toggle_button, project_picker]
@@ -278,7 +289,6 @@ impl App {
                                 .map(|p| p.name.as_str())
                                 .unwrap()
                         )
-                        .font(iced::Font::MONOSPACE)
                         .on_input(Message::EditProjectNameInput),
                         right(row![
                             button(
@@ -302,11 +312,10 @@ impl App {
                         text(
                             (0..depth)
                                 .map(|_| "  ")
-                                .chain(iter::once("▹"))
+                                .chain(iter::once("› "))
                                 .collect::<String>()
                                 + &p.name
-                        )
-                        .font(iced::Font::MONOSPACE),
+                        ),
                         right(if self.pomo.projects.get_edited_id().is_none() {
                             row![
                                 text!("{ :<4}", (p.total_hours * 10.0).round() / 10.0),
