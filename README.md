@@ -16,6 +16,10 @@ You can see your total hours for the last week (and soon™ other stats too).
 
 ## FAQ
 
+### The mini window does not stay on top under Wayland
+
+Yeah that might happen due to unresolved Wayland limitations, use a window rule from your desktop.
+
 ### The UI elements are too large under X11
 
 Either set `Xft.dpi: 96` in `~/.Xresources`, or set `WINIT_X11_SCALE_FACTOR=1`. See [this](https://github.com/rust-windowing/winit/issues/2231).
