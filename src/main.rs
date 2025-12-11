@@ -5,29 +5,17 @@ mod db;
 mod pomo;
 mod projects;
 mod stats;
+mod util;
 
-use chrono::Datelike;
-use chrono::Days;
-use chrono::Utc;
-use iced::Application;
-use iced::Padding;
-use iced::Size;
-use iced::widget::center_x;
-use iced::widget::image;
-use iced::widget::pick_list;
-use iced::widget::right;
-use iced::widget::scrollable;
-use iced::widget::text_input;
-use iced::window::Level;
-use iced::window::Settings;
-
-use iced::Task;
-use iced::keyboard;
-use iced::time;
-use iced::widget::MouseArea;
-use iced::widget::{button, center, column, row, text};
-use iced::window;
-use iced::{Center, Element, Subscription, Theme};
+use chrono::{Datelike, Days, Utc};
+use iced::{
+    Center, Element, Padding, Size, Subscription, Task, Theme, keyboard, time,
+    widget::{
+        MouseArea, button, center, center_x, column, image, pick_list, right, row, scrollable,
+        text, text_input,
+    },
+    window::{self, Level, Settings},
+};
 use pliced::Chart;
 use plotters::prelude::*;
 use std::env;
@@ -245,11 +233,14 @@ impl App {
                 .into_iter()
                 .map(|(depth, p)| {
                     let mut p = p.clone();
-                    p.name = (0..depth)
-                        .map(|_| "  ")
-                        .chain(iter::once("› "))
-                        .collect::<String>()
-                        + &p.name;
+                    p.name = util::truncate_with_ellipsis(
+                        (0..depth)
+                            .map(|_| "  ")
+                            .chain(iter::once("› "))
+                            .collect::<String>()
+                            + &p.name,
+                        40,
+                    );
                     p
                 })
                 .collect::<Vec<_>>(),
@@ -280,6 +271,12 @@ impl App {
                     .map_or(false, |edited_id| edited_id == p.id)
                 {
                     row![
+                        text(
+                            (0..depth)
+                                .map(|_| "  ")
+                                .chain(iter::once("› "))
+                                .collect::<String>()
+                        ),
                         text_input(
                             "Project Name",
                             &self
@@ -309,13 +306,14 @@ impl App {
                     .into()
                 } else {
                     row![
-                        text(
+                        text(util::truncate_with_ellipsis(
                             (0..depth)
                                 .map(|_| "  ")
                                 .chain(iter::once("› "))
                                 .collect::<String>()
-                                + &p.name
-                        ),
+                                + &p.name,
+                            40
+                        )),
                         right(if self.pomo.projects.get_edited_id().is_none() {
                             row![
                                 text!("{ :<4}", (p.total_hours * 10.0).round() / 10.0),
