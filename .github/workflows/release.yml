@@ -95,20 +95,20 @@ jobs:
           # MACOS_APP_BIN=$MACOS_APP_DIR/Contents/MacOS/$MACOS_BIN_NAME
           cp ../target/${{ matrix.target }}/release/$APP_NAME $MACOS_APP_DIR/Contents/MacOS/$MACOS_APP_NAME
 
-          # echo "Creating Icon"
-          # iconset=icon.iconset
-          # mkdir -p "${iconset}"
-          #
-          # for s in 16 32 128 256 512; do
-          #   d=$(($s*2))
-          #   sips -Z $s "../img/hello_work.png" --out "${iconset}/icon_${s}x$s.png"
-          #   sips -Z $d "../img/hello_work.png" --out "${iconset}/icon_${s}x$s@2x.png"
-          # done
-          #
-          # iconutil -c icns $iconset
-          # mkdir -p $MACOS_APP_DIR/Contents/Resources
-          # mv icon.icns $MACOS_APP_DIR/Contents/Resources/
-          # mv resources/Info.plist $MACOS_APP_DIR/Contents/
+          echo "Creating Icon"
+          iconset=icon.iconset
+          mkdir -p "${iconset}"
+          
+          for s in 16 32 128 256 512; do
+            d=$(($s*2))
+            sips -Z $s "../img/hello_work_512.png" --out "${iconset}/icon_${s}x$s.png"
+            sips -Z $d "../img/hello_work_512.png" --out "${iconset}/icon_${s}x$s@2x.png"
+          done
+          
+          iconutil -c icns $iconset
+          mkdir -p $MACOS_APP_DIR/Contents/Resources
+          mv icon.icns $MACOS_APP_DIR/Contents/Resources/
+          #mv resources/Info.plist $MACOS_APP_DIR/Contents/
 
           echo "Creating dmg"
           mkdir -p $MACOS_APP_NAME
