@@ -119,8 +119,8 @@ jobs:
             --volname "Hello Work" \
             --window-size 800 400 \
             --icon-size 100 \
-            --icon "HelloWork.app" 200 190 \
-            --hide-extension "HelloWork.app" \
+            --icon "$MACOS_APP_DIR" 200 190 \
+            --hide-extension "$MACOS_APP_DIR" \
             --app-drop-link 600 185 \
             ../${{ matrix.name }} \
             $MACOS_APP_NAME
