@@ -27,48 +27,55 @@ impl Display for Project {
 
 pub fn get_projects(db: &Connection) -> Result<Vec<Project>> {
     let mut stmt = db.prepare(
-        "SELECT 
+        "WITH RECURSIVE project_aggregates AS (
+            SELECT
                 p.id,
-                p.name,
-                p.target_hours,
                 p.parent,
-                GROUP_CONCAT(c.id) AS children,
-                -- Use COALESCE to treat NULL as 0 and SUM the parent's work and the children's work
-                COALESCE(parent_work.duration, 0) + COALESCE(child_work.total_children_duration, 0) AS total_duration
-            FROM 
+                p.id AS root_project_id,
+                COALESCE(wt.duration, 0) AS duration_contribution
+            FROM
                 projects p
             LEFT JOIN
-                -- Calculate the work hours for the parent project
-                (
-                    SELECT
-                        project_id,
-                        SUM(duration) AS duration
-                    FROM
-                        work
-                    GROUP BY
-                        project_id
-                ) parent_work ON p.id = parent_work.project_id
-            LEFT JOIN
-                -- Calculate the total work hours for all CHILDREN
-                (
-                    SELECT
-                        c_work.parent AS parent_id,
-                        SUM(w.duration) AS total_children_duration
-                    FROM
-                        projects c_work
-                    INNER JOIN -- Use INNER JOIN here, we only care about children with work
-                        work w ON c_work.id = w.project_id
-                    WHERE
-                        c_work.parent IS NOT NULL -- Only look at projects that are children
-                    GROUP BY
-                        c_work.parent
-                ) child_work ON p.id = child_work.parent_id
-            LEFT JOIN 
-                projects c ON p.id = c.parent
-            WHERE
-                p.archived = 0
-            GROUP BY 
-                p.id;",
+                work_totals wt ON p.id = wt.project_id
+            
+            UNION ALL
+            
+            SELECT
+                p.id,
+                p.parent,
+                h.root_project_id,
+                h.duration_contribution
+            FROM
+                projects p
+            INNER JOIN
+                project_aggregates h ON p.id = h.parent
+        )
+
+        SELECT
+            p.id,
+            p.name,
+            p.target_hours,
+            p.parent,
+            GROUP_CONCAT(c.id) as children,
+            total_duration
+        FROM
+            projects p
+        LEFT JOIN
+            (
+                SELECT
+                    id,
+                    SUM(duration_contribution) AS total_duration
+                FROM
+                    project_aggregates
+                GROUP BY
+                    id
+            ) a ON p.id = a.id
+        LEFT JOIN
+            projects c ON c.parent = p.id
+        WHERE
+            p.archived = 0
+        GROUP BY
+            p.id;",
     )?;
     let projects = stmt
         .query_map([], |row| {

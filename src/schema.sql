@@ -16,4 +16,12 @@ CREATE TABLE IF NOT EXISTS work (
         REFERENCES projects (id)
 );
 
---INSERT INTO projects (name) VALUES ("Programming");
+CREATE VIEW IF NOT EXISTS work_totals AS 
+	SELECT
+		project_id,
+		SUM(duration) AS duration
+	FROM
+		work
+	GROUP BY
+		project_id
+;
