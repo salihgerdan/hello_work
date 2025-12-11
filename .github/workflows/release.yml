@@ -112,6 +112,9 @@ jobs:
           cp -r $MACOS_APP_DIR $MACOS_APP_NAME/
           rm -rf $MACOS_APP_NAME/.Trashes
 
+          # Create shortcut to Applications folder
+          ln -s /Applications $MACOS_APP_NAME/Applications
+
           hdiutil create ../${{ matrix.name }} -srcfolder $MACOS_APP_NAME -ov
           cd -
       - name: PostBuild | Prepare | Linux
