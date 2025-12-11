@@ -1,4 +1,16 @@
-# Hello Work
+# Hello Work <img src="img/hello_work_pixel.png" width="40"/>
+
+It's cute, it's a pomodoro timer, it's a project manager? to-do list (of sorts), and it's a time tracker.
+
+![Main Window](img/screenshots/screenshot_main.png?raw=true)
+
+You can add projects to track time, and an arbitrary depth of sub-projects which you might also call tasks which all aggregate to the top.
+
+There's a mini-window to always stay on top of your screen to remind you that a session is going.
+
+![Mini Window](img/screenshots/screenshot_mini.png?raw=true)
+
+![Mini Window](img/screenshots/screenshot_stats.png?raw=true)
 
 ## FAQ
 
