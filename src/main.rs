@@ -14,7 +14,7 @@ use iced::{
         MouseArea, button, center, center_x, column, image, pick_list, right, row, scrollable,
         text, text_input,
     },
-    window::{self, Level, Settings},
+    window::{self, Icon, Level, Settings},
 };
 use pliced::Chart;
 use plotters::prelude::*;
@@ -28,11 +28,22 @@ const MINI_W: f32 = 110.0;
 const MINI_H: f32 = 65.0;
 
 const FONT_SANS: iced::Font = iced::Font::with_name("Lato");
+static HELLO_WORK_ICON: &[u8] = include_bytes!("../img/hello_work_pixel.png");
+
+static CONFIG_ICON: &[u8] = include_bytes!("../img/config.png");
+static ADD_ICON: &[u8] = include_bytes!("../img/add.png");
+static ARCHIVE_ICON: &[u8] = include_bytes!("../img/archive.png");
+static OKAY_ICON: &[u8] = include_bytes!("../img/okay.png");
 
 pub fn main() -> iced::Result {
+    let icon = iced::window::icon::from_file_data(HELLO_WORK_ICON, None).ok();
     let app = iced::application(App::title, App::update, App::view)
         .subscription(App::subscription)
         .theme(App::theme)
+        .window(Settings {
+            icon: icon,
+            ..Default::default()
+        })
         .default_font(FONT_SANS)
         .window_size(Size::new(MAIN_W, MAIN_H));
     app.run_with(move || App::new())
@@ -257,11 +268,6 @@ impl App {
     }
 
     fn projects_tab_view(&self) -> Element<Message> {
-        let config_icon = include_bytes!("../img/config.png");
-        let add_icon = include_bytes!("../img/add.png");
-        let archive_icon = include_bytes!("../img/archive.png");
-        let okay_icon = include_bytes!("../img/okay.png");
-
         let projects_list = column(self.pomo.projects.get_all_tree_style().into_iter().map(
             |(depth, p)| {
                 if self
@@ -289,13 +295,13 @@ impl App {
                         .on_input(Message::EditProjectNameInput),
                         right(row![
                             button(
-                                image(image::Handle::from_bytes(&okay_icon[..]))
+                                image(image::Handle::from_bytes(OKAY_ICON))
                                     .height(16)
                                     .width(16)
                             )
                             .on_press(Message::EditProjectFinish),
                             button(
-                                image(image::Handle::from_bytes(&archive_icon[..]))
+                                image(image::Handle::from_bytes(ARCHIVE_ICON))
                                     .height(16)
                                     .width(16)
                             )
@@ -318,13 +324,13 @@ impl App {
                             row![
                                 text!("{ :<4}", (p.total_hours * 10.0).round() / 10.0),
                                 button(
-                                    image(image::Handle::from_bytes(&config_icon[..]))
+                                    image(image::Handle::from_bytes(CONFIG_ICON))
                                         .height(16)
                                         .width(16)
                                 )
                                 .on_press(Message::EditProjectInitiate(p.id)),
                                 button(
-                                    image(image::Handle::from_bytes(&add_icon[..]))
+                                    image(image::Handle::from_bytes(ADD_ICON))
                                         .height(16)
                                         .width(16)
                                 )
