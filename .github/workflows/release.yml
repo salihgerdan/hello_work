@@ -54,6 +54,9 @@ jobs:
       #   run: |-
       #     brew fetch --force --bottle-tag=arm64_big_sur gtk4 gdk-pixbuf graphene hicolor-icon-theme libepoxy fribidi pango
       #      brew --cache --bottle-tag=arm64_big_sur gtk4 gdk-pixbuf graphene hicolor-icon-theme libepoxy fribidi pango
+      - name: Setup | Install Dependencies | MacOS
+        if: matrix.os == 'macos-latest'
+        run: brew install create-dmg
       - name: Setup | Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -112,10 +115,16 @@ jobs:
           cp -r $MACOS_APP_DIR $MACOS_APP_NAME/
           rm -rf $MACOS_APP_NAME/.Trashes
 
-          # Create shortcut to Applications folder
-          ln -s /Applications $MACOS_APP_NAME/Applications
-
-          hdiutil create ../${{ matrix.name }} -srcfolder $MACOS_APP_NAME -ov
+          create-dmg \
+            --volname "Hello Work" \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "HelloWork.app" 200 190 \
+            --hide-extension "HelloWork.app" \
+            --app-drop-link 600 185 \
+            ../${{ matrix.name }} \
+            $MACOS_APP_NAME
+            
           cd -
       - name: PostBuild | Prepare | Linux
         if: matrix.os == 'ubuntu-latest'
