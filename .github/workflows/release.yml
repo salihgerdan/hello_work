@@ -96,7 +96,7 @@ jobs:
           cp ../target/${{ matrix.target }}/release/$APP_NAME $MACOS_APP_DIR/Contents/MacOS/$MACOS_APP_NAME
 
           echo "Creating Icon"
-          iconset=icon.iconset
+          iconset=AppIcon.iconset
           mkdir -p "${iconset}"
           
           for s in 16 32 128 256 512; do
@@ -107,9 +107,15 @@ jobs:
           
           iconutil -c icns $iconset
           mkdir -p $MACOS_APP_DIR/Contents/Resources
-          mv icon.icns $MACOS_APP_DIR/Contents/Resources/
-          #mv resources/Info.plist $MACOS_APP_DIR/Contents/
+          mv AppIcon.icns $MACOS_APP_DIR/Contents/Resources/
 
+          cp ../platform/macos/Info.plist $MACOS_APP_DIR/Contents/
+          # set version strings based on tag
+          BUILD_NUM=$(echo ${{ github.ref_name }} | sed -E "s/\.//g" | sed -E "s/v0?//")
+          SHORT_VER=$(echo ${{ github.ref_name }} | sed -E "s/v//")
+          sed -i '' -E "s/\{CFBundleShortVersionString\}/$SHORT_VER/" $MACOS_APP_DIR/Contents/Info.plist
+          sed -i '' -E "s/\{CFBundleVersion\}/$BUILD_NUM/" $MACOS_APP_DIR/Contents/Info.plist
+          
           echo "Creating dmg"
           mkdir -p $MACOS_APP_NAME
           cp -r $MACOS_APP_DIR $MACOS_APP_NAME/
