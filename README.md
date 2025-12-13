@@ -16,6 +16,10 @@ You can see your total hours for the last week (and soon™ other stats too).
 
 ## FAQ
 
+### Does it save my session when I click "Stop"?
+
+Not currently, no. This is to encourage finishing what you started. It does however, undermine the time tracking promise a bit.
+
 ### The mini window does not stay on top under Wayland
 
 Yeah that might happen due to unresolved Wayland limitations, use a window rule from your desktop.
