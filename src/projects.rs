@@ -26,9 +26,6 @@ impl Projects {
         self.projects
             .append(&mut db::get_projects(conn).expect("Failed to fetch projects"));
     }
-    pub fn get_all(&self) -> &[Project] {
-        &self.projects
-    }
     pub fn get_all_tree_style(&self) -> Vec<(usize, &Project)> {
         fn recurse<'a>(
             project: &'a Project,
@@ -45,11 +42,10 @@ impl Projects {
                 )
                 .collect()
         }
-        let all_projects = self.get_all();
-        all_projects
+        self.projects
             .iter()
             .filter(|p| p.parent.is_none())
-            .flat_map(|p| recurse(p, all_projects, 0))
+            .flat_map(|p| recurse(p, &self.projects, 0))
             .collect()
     }
     /*pub fn get(&self, id: usize) -> Option<&Project> {
