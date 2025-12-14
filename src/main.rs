@@ -14,7 +14,7 @@ use iced::{
         MouseArea, button, center, center_x, column, image, pick_list, right, row, scrollable,
         text, text_input,
     },
-    window::{self, Icon, Level, Settings},
+    window::{self, Level, Settings},
 };
 use pliced::Chart;
 use plotters::prelude::*;
@@ -181,8 +181,8 @@ impl App {
             }
             Message::SessionLengthChanged(session_length) => {
                 // session length is input as minutes in the interface
-                if let Ok(len) = session_length.parse::<u64>() {
-                    self.pomo.session_length = len * 60;
+                if let Ok(new_in_min) = session_length.parse::<f64>() {
+                    self.pomo.change_session_length(new_in_min);
                 }
             }
         }

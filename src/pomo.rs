@@ -1,11 +1,20 @@
-use crate::{config, db, projects::Projects};
+use crate::{
+    config::{self, Config},
+    db,
+    projects::Projects,
+};
 use rusqlite::Connection;
-use std::time::{Duration, SystemTime};
+use std::{
+    path::PathBuf,
+    time::{Duration, SystemTime},
+};
 
 pub struct Pomo {
     pub session_length: u64,
     pub session_start: Option<SystemTime>,
     pub db: Connection,
+    pub config_file_path: PathBuf,
+    pub config: Config,
     pub projects: Projects,
 }
 
@@ -57,16 +66,24 @@ impl Pomo {
             None => "--:--".to_owned(),
         }
     }
+    pub fn change_session_length(&mut self, new_in_min: f64) {
+        self.session_length = (new_in_min * 60.0) as u64;
+        self.config.session_length = Some(new_in_min);
+        self.config.write_config(&self.config_file_path);
+    }
 }
 
 impl Default for Pomo {
     fn default() -> Self {
+        let config_file_path = config::config_dir().join("config.toml");
+        let config = config::Config::read(&config_file_path);
         let conn = db::init_db(&config::config_dir().join("hellowork.db"));
         let pomo = Self {
             session_start: None,
-            //session_length: 10,
-            session_length: 25 * 60,
+            session_length: (config.session_length.unwrap_or(25.0) * 60.0) as u64,
             projects: Projects::new(&conn),
+            config_file_path,
+            config,
             db: conn,
         };
         pomo

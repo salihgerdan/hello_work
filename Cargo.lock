@@ -1783,6 +1783,8 @@ dependencies = [
  "pliced",
  "plotters",
  "rusqlite",
+ "serde",
+ "toml",
  "winresource",
 ]
 
