@@ -27,3 +27,7 @@ Yeah that might happen due to unresolved Wayland limitations, use a window rule 
 ### The UI elements are too large under X11
 
 Either set `Xft.dpi: 96` in `~/.Xresources`, or set `WINIT_X11_SCALE_FACTOR=1`. See [this](https://github.com/rust-windowing/winit/issues/2231).
+
+# Credits
+
+[MonkeyType](https://github.com/monkeytypegame/monkeytype/tree/master/frontend/static/themes) for a good source of simple color schemes.
