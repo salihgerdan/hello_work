@@ -489,6 +489,18 @@ impl pliced::Program<Message> for App {
     ) {
         let data = stats::last_week_chart(&self.pomo.db);
 
+        let sub_c = &self.pomo.config.get_color_scheme().sub_color;
+        let color = plotters::style::RGBColor(sub_c.r, sub_c.g, sub_c.b);
+
+        let text_c = &self.pomo.config.get_color_scheme().text_color;
+        let text_color = plotters::style::RGBColor(text_c.r, text_c.g, text_c.b);
+
+        let style = ShapeStyle {
+            color: color.into(),
+            filled: true,
+            stroke_width: 2,
+        };
+
         let y_max = data
             .iter()
             .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
@@ -510,7 +522,7 @@ impl pliced::Program<Message> for App {
 
         chart
             .configure_mesh()
-            .label_style(TextStyle::from(("sans-serif", 15).into_font()).color(&WHITE))
+            .label_style(TextStyle::from(("sans-serif", 15).into_font()).color(&text_color))
             // take out the year display from the dates
             .x_label_formatter(&|x| format!("{}-{}", x.month(), x.day()))
             .draw()
@@ -521,9 +533,9 @@ impl pliced::Program<Message> for App {
                 AreaSeries::new(
                     data.iter().map(|x| *x), // The data iter
                     0.0,                     // Baseline
-                    &RED.mix(0.2),           // Make the series opac
+                    &color.mix(0.2),         // Make the series opac
                 )
-                .border_style(&RED), // Make a brighter border
+                .border_style(style), // Make a brighter border
             )
             .unwrap();
     }
