@@ -10,7 +10,9 @@ mod util;
 
 use chrono::{Datelike, Days, Utc};
 use iced::{
-    Center, Element, Padding, Size, Subscription, Task, Theme, keyboard, time,
+    Center, Element, Padding, Size, Subscription, Task, Theme, keyboard,
+    theme::{Custom, Palette},
+    time,
     widget::{
         MouseArea, button, center, center_x, column, image, pick_list, right, row, scrollable,
         text, text_input,
@@ -18,10 +20,10 @@ use iced::{
     window::{self, Level, Settings},
 };
 use pliced::Chart;
-use plotters::prelude::*;
-use std::env;
+use plotters::{prelude::*, style::Color};
 use std::iter;
 use std::time::Duration;
+use std::{env, sync::Arc};
 
 const MAIN_W: f32 = 400.0;
 const MAIN_H: f32 = 600.0;
@@ -59,12 +61,26 @@ enum Tab {
     Settings,
 }
 
-#[derive(Default)]
 struct App {
     // geometry: (iced::Size, iced::window::Position),
     mini_window: bool,
     current_tab: Tab,
     pomo: pomo::Pomo,
+    theme: Theme,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        let mut app = App {
+            mini_window: false,
+            current_tab: Tab::default(),
+            pomo: pomo::Pomo::default(),
+            theme: Theme::CatppuccinLatte,
+        };
+        //initialize theme here
+        app.update_theme();
+        app
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -82,6 +98,7 @@ enum Message {
     EditProjectNameInput(String),
     TabSelected(Tab),
     SessionLengthChanged(String),
+    ThemeChanged(Option<String>),
 }
 
 impl App {
@@ -185,6 +202,10 @@ impl App {
                 if let Ok(new_in_min) = session_length.parse::<f64>() {
                     self.pomo.change_session_length(new_in_min);
                 }
+            }
+            Message::ThemeChanged(color_scheme_name) => {
+                self.pomo.change_color_scheme(color_scheme_name);
+                self.update_theme();
             }
         }
         Task::none()
@@ -359,12 +380,28 @@ impl App {
     }
 
     fn settings_tab_view(&self) -> Element<Message> {
+        let color_scheme_picker = pick_list(
+            color_schemes::SCHEMES
+                .iter()
+                .map(|x| x.0)
+                .collect::<Vec<_>>(),
+            self.pomo
+                .config
+                .color_scheme_name
+                .as_ref()
+                .map(|x| x.as_str()),
+            |p: &str| Message::ThemeChanged(Some(p.to_string())),
+        );
         center(scrollable(
-            column![row![
-                text("Session Length: "),
-                text_input("", &(self.pomo.session_length / 60).to_string())
-                    .on_input(Message::SessionLengthChanged)
-            ]]
+            column![
+                row![
+                    text("Session Length: "),
+                    text_input("", &(self.pomo.session_length / 60).to_string())
+                        .on_input(Message::SessionLengthChanged)
+                        .width(70)
+                ],
+                row![text("Colors: "), color_scheme_picker]
+            ]
             .spacing(3)
             .max_width(500)
             .padding(20),
@@ -416,7 +453,26 @@ impl App {
     }
 
     fn theme(&self) -> Theme {
-        Theme::Dark
+        self.theme.clone()
+    }
+
+    fn update_theme(&mut self) {
+        fn into_iced_color(c: &color_schemes::Color) -> iced::Color {
+            iced::Color::from_rgb8(c.r, c.g, c.b)
+        }
+        let color_scheme = self.pomo.config.get_color_scheme();
+        let iced_theme = Theme::Custom(Arc::new(Custom::new(
+            "name".to_string(),
+            Palette {
+                background: into_iced_color(&color_scheme.bg_color),
+                text: into_iced_color(&color_scheme.text_color),
+                primary: into_iced_color(&color_scheme.main_color),
+                success: into_iced_color(&color_scheme.sub_color),
+                warning: into_iced_color(&color_scheme.error_color),
+                danger: into_iced_color(&color_scheme.colorful_error_color),
+            },
+        )));
+        self.theme = iced_theme
     }
 }
 

@@ -71,6 +71,10 @@ impl Pomo {
         self.config.session_length = Some(new_in_min);
         self.config.write_config(&self.config_file_path);
     }
+    pub fn change_color_scheme(&mut self, color_scheme_name: Option<String>) {
+        self.config.color_scheme_name = color_scheme_name;
+        self.config.write_config(&self.config_file_path);
+    }
 }
 
 impl Default for Pomo {

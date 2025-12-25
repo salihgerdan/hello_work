@@ -4,6 +4,8 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
+use crate::color_schemes;
+
 pub fn config_dir() -> PathBuf {
     let dir = ProjectDirs::from("moe", "msg", "Hello Work")
         .unwrap()
@@ -22,6 +24,8 @@ pub struct Config {
     // in minutes, as opposed to the seconds in the Pomo struct
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_length: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color_scheme_name: Option<String>,
 }
 
 impl Config {
@@ -55,5 +59,16 @@ impl Config {
         if let Ok(mut file) = fs::File::create(file_path) {
             let _ = file.write_all(toml::to_string(self).unwrap().as_bytes());
         }
+    }
+    pub fn get_color_scheme(&self) -> &color_schemes::ColorScheme {
+        self.color_scheme_name
+            .as_ref()
+            .and_then(|color_scheme_name| {
+                color_schemes::SCHEMES
+                    .into_iter()
+                    .find(|x| x.0 == color_scheme_name)
+            })
+            .map(|x| x.1)
+            .unwrap_or(&color_schemes::CHAOS_THEORY)
     }
 }
