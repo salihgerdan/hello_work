@@ -397,8 +397,8 @@ impl App {
                 row![
                     text("Session Length: "),
                     text_input("", &(self.pomo.session_length / 60).to_string())
-                        .on_input(Message::SessionLengthChanged)
                         .width(70)
+                        .on_input(Message::SessionLengthChanged)
                 ],
                 row![text("Colors: "), color_scheme_picker]
             ]
