@@ -389,6 +389,7 @@ impl App {
                             .on_press(Message::EditProjectArchive),
                         ]
                     ]
+                    .align_y(Center)
                     .height(32)
                     .into()
                 } else {
@@ -423,6 +424,7 @@ impl App {
                             row![]
                         }
                     ]
+                    .align_y(Center)
                     .height(32)
                     .into()
                 }
@@ -460,7 +462,8 @@ impl App {
                     text_input("", &(self.pomo.session_length / 60).to_string())
                         .width(70)
                         .on_input(Message::SessionLengthChanged)
-                ],
+                ]
+                .align_y(Center),
                 row![
                     text("Audio: "),
                     text(
@@ -483,7 +486,8 @@ impl App {
                             .style(container::rounded_box),
                         tooltip::Position::Bottom,
                     )
-                ],
+                ]
+                .align_y(Center),
                 row![
                     text("Volume: "),
                     slider(
@@ -492,8 +496,9 @@ impl App {
                         Message::WorkEndAudioVolumeChanged
                     )
                     .width(130)
-                ],
-                row![text("Colors: "), color_scheme_picker]
+                ]
+                .align_y(Center),
+                row![text("Colors: "), color_scheme_picker].align_y(Center)
             ]
             .spacing(10)
             .max_width(500)
