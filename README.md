@@ -30,4 +30,4 @@ Either set `Xft.dpi: 96` in `~/.Xresources`, or set `WINIT_X11_SCALE_FACTOR=1`. 
 
 # Credits
 
-[MonkeyType](https://github.com/monkeytypegame/monkeytype/tree/master/frontend/static/themes) for a good source of simple color schemes.
+[MonkeyType](https://github.com/monkeytypegame/monkeytype/tree/master/frontend/static/themes) for an excellent source of simple color schemes.
