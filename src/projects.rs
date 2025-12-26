@@ -11,6 +11,22 @@ pub struct Projects {
     edited: Option<Project>,
 }
 
+fn recurse<'a>(
+    project: &'a Project,
+    all_projects: &'a [Project],
+    depth: usize,
+) -> Vec<(usize, &'a Project)> {
+    iter::once((depth, project))
+        .chain(
+            project
+                .children
+                .iter()
+                .flat_map(|id| all_projects.iter().find(|p| p.id == *id))
+                .flat_map(|p| recurse(p, all_projects, depth + 1)),
+        )
+        .collect()
+}
+
 impl Projects {
     pub fn new(conn: &Connection) -> Self {
         let mut p = Projects {
@@ -27,21 +43,6 @@ impl Projects {
             .append(&mut db::get_projects(conn).expect("Failed to fetch projects"));
     }
     pub fn get_all_tree_style(&self) -> Vec<(usize, &Project)> {
-        fn recurse<'a>(
-            project: &'a Project,
-            all_projects: &'a [Project],
-            depth: usize,
-        ) -> Vec<(usize, &'a Project)> {
-            iter::once((depth, project))
-                .chain(
-                    project
-                        .children
-                        .iter()
-                        .flat_map(|id| all_projects.iter().find(|p| p.id == *id))
-                        .flat_map(|p| recurse(p, all_projects, depth + 1)),
-                )
-                .collect()
-        }
         self.projects
             .iter()
             .filter(|p| p.parent.is_none())
@@ -91,7 +92,11 @@ impl Projects {
     }
     pub fn archive_edited_item(&mut self, conn: &Connection) {
         if let Some(edited) = self.edited.as_ref() {
-            db::archive_project(conn, edited.id).expect("Failed to archive project");
+            // archive children too when parent is archived
+            let hierarchy = recurse(edited, &self.projects, 0);
+            for (_depth, p) in hierarchy {
+                db::archive_project(conn, p.id).expect("Failed to archive project");
+            }
         }
         self.edited = None;
         self.fetch(conn);
