@@ -56,7 +56,7 @@ fn svg_style_primary(
     }
 }
 
-fn button_style_transparent(theme: &Theme, _status: button::Status) -> button::Style {
+fn button_style_transparent(_theme: &Theme, _status: button::Status) -> button::Style {
     button::Style {
         background: None,
         ..Default::default()
@@ -526,7 +526,7 @@ impl App {
                 .on_press(Message::MiniWindowToggle);
 
         let top_bar = row![
-            center_x(tabs.padding(Padding::ZERO.left(31))), // padding equal to the mini_window button size
+            center_x(tabs.padding(Padding::ZERO.left(38))), // padding equal to the mini_window button size
             mini_window_button
         ];
 
