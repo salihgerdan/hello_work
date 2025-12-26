@@ -15,8 +15,8 @@ use iced::{
     theme::{Custom, Palette},
     time,
     widget::{
-        MouseArea, button, center, center_x, column, image, pick_list, right, row, scrollable,
-        text, text_input,
+        MouseArea, button, center, center_x, column, container, image, pick_list, right, row,
+        scrollable, text, text_input, tooltip,
     },
     window::{self, Level, Settings},
 };
@@ -100,6 +100,7 @@ enum Message {
     TabSelected(Tab),
     SessionLengthChanged(String),
     ThemeChanged(Option<String>),
+    FilePickerWorkEndAudio,
 }
 
 impl App {
@@ -207,6 +208,17 @@ impl App {
             Message::ThemeChanged(color_scheme_name) => {
                 self.pomo.change_color_scheme(color_scheme_name);
                 self.update_theme();
+            }
+            Message::FilePickerWorkEndAudio => {
+                // clears if already set
+                if self.pomo.config.work_end_audio.is_some() {
+                    self.pomo.change_work_end_audio(None);
+                } else {
+                    let file = rfd::FileDialog::new()
+                        .add_filter("mp3", &["mp3"])
+                        .pick_file();
+                    self.pomo.change_work_end_audio(file);
+                }
             }
         }
         Task::none()
@@ -401,9 +413,32 @@ impl App {
                         .width(70)
                         .on_input(Message::SessionLengthChanged)
                 ],
+                row![
+                    text("Audio: "),
+                    text(
+                        self.pomo
+                            .config
+                            .work_end_audio
+                            .as_ref()
+                            .map(|x| x.file_name().unwrap_or_default().to_string_lossy())
+                            .unwrap_or_default()
+                    ),
+                    tooltip(
+                        button(if self.pomo.config.work_end_audio.is_none() {
+                            "Pick"
+                        } else {
+                            "Clear"
+                        })
+                        .on_press(Message::FilePickerWorkEndAudio),
+                        container("Only supports mp3, the format adored by the world")
+                            .padding(10)
+                            .style(container::rounded_box),
+                        tooltip::Position::Bottom,
+                    )
+                ],
                 row![text("Colors: "), color_scheme_picker]
             ]
-            .spacing(3)
+            .spacing(10)
             .max_width(500)
             .padding(20),
         ))

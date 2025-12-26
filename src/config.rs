@@ -26,6 +26,8 @@ pub struct Config {
     pub session_length: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color_scheme_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_end_audio: Option<PathBuf>,
 }
 
 impl Config {

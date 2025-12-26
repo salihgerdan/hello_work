@@ -45,7 +45,7 @@ impl Pomo {
         .expect("Recording work session into DB failed");
         self.projects.fetch(&self.db); // refresh total work durations per project
         self.session_start = None;
-        crate::audio::play_audio(None);
+        crate::audio::play_audio(self.config.work_end_audio.clone());
     }
     pub fn check_finished(&mut self) {
         self.time_elapsed().map(|elapsed| {
@@ -74,6 +74,10 @@ impl Pomo {
     }
     pub fn change_color_scheme(&mut self, color_scheme_name: Option<String>) {
         self.config.color_scheme_name = color_scheme_name;
+        self.config.write_config(&self.config_file_path);
+    }
+    pub fn change_work_end_audio(&mut self, work_end_audio: Option<PathBuf>) {
+        self.config.work_end_audio = work_end_audio;
         self.config.write_config(&self.config_file_path);
     }
 }
