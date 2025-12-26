@@ -16,7 +16,7 @@ use iced::{
     time,
     widget::{
         MouseArea, button, center, center_x, column, container, image, pick_list, right, row,
-        scrollable, text, text_input, tooltip,
+        scrollable, slider, text, text_input, tooltip,
     },
     window::{self, Level, Settings},
 };
@@ -101,6 +101,7 @@ enum Message {
     SessionLengthChanged(String),
     ThemeChanged(Option<String>),
     FilePickerWorkEndAudio,
+    WorkEndAudioVolumeChanged(f32),
 }
 
 impl App {
@@ -219,6 +220,11 @@ impl App {
                         .pick_file();
                     self.pomo.change_work_end_audio(file);
                 }
+            }
+            Message::WorkEndAudioVolumeChanged(volume) => {
+                // the slider uses 0.0..=100.0 while the real volume goes up to 1.0
+                self.pomo.change_work_end_audio_volume(Some(volume / 100.0));
+                self.update_theme();
             }
         }
         Task::none()
@@ -435,6 +441,15 @@ impl App {
                             .style(container::rounded_box),
                         tooltip::Position::Bottom,
                     )
+                ],
+                row![
+                    text("Volume: "),
+                    slider(
+                        0.0..=100.0,
+                        self.pomo.config.work_end_audio_volume.unwrap_or(1.0) * 100.0,
+                        Message::WorkEndAudioVolumeChanged
+                    )
+                    .width(130)
                 ],
                 row![text("Colors: "), color_scheme_picker]
             ]

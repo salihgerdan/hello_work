@@ -28,6 +28,8 @@ pub struct Config {
     pub color_scheme_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub work_end_audio: Option<PathBuf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_end_audio_volume: Option<f32>,
 }
 
 impl Config {
