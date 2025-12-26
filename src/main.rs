@@ -15,8 +15,8 @@ use iced::{
     theme::{Custom, Palette},
     time,
     widget::{
-        MouseArea, button, center, center_x, column, container, pick_list, right, row, scrollable,
-        slider, svg, text, text_input, tooltip,
+        MouseArea, button, center, center_x, column, container, pick_list, row, scrollable, slider,
+        svg, text, text_input, tooltip,
     },
     window::{self, Level, Settings},
 };
@@ -38,10 +38,37 @@ static CONFIG_ICON: &[u8] = include_bytes!("../img/wrench-solid-full.svg");
 static ADD_ICON: &[u8] = include_bytes!("../img/plus-solid-full.svg");
 static ARCHIVE_ICON: &[u8] = include_bytes!("../img/trash-can-regular-full.svg");
 static OKAY_ICON: &[u8] = include_bytes!("../img/check-solid-full.svg");
+static MINIMIZE_ICON: &[u8] = include_bytes!("../img/compress-solid-full.svg");
 
 fn svg_style(theme: &Theme, _status: iced::widget::svg::Status) -> iced::widget::svg::Style {
     iced::widget::svg::Style {
         color: Some(theme.palette().background),
+    }
+}
+
+fn svg_style_primary(
+    theme: &Theme,
+    _status: iced::widget::svg::Status,
+) -> iced::widget::svg::Style {
+    iced::widget::svg::Style {
+        color: Some(theme.palette().primary),
+    }
+}
+
+fn button_style_transparent(theme: &Theme, _status: button::Status) -> button::Style {
+    button::Style {
+        background: None,
+        text_color: theme.palette().text,
+        border: iced::Border {
+            color: theme.palette().primary,
+            width: 0.0,
+            radius: iced::border::radius(0),
+        },
+        shadow: iced::Shadow {
+            color: theme.palette().primary,
+            offset: iced::Vector { x: 0.0, y: 0.0 },
+            blur_radius: 0.0,
+        },
     }
 }
 
@@ -493,16 +520,17 @@ impl App {
             button("Stats").on_press(Message::TabSelected(Tab::Stats)),
             button("Settings").on_press(Message::TabSelected(Tab::Settings))
         ]
-        .spacing(10);
+        .spacing(7);
 
-        let mini_window_button = button("m")
-            .style(button::secondary)
-            .width(31)
-            .height(31)
-            .on_press(Message::MiniWindowToggle);
+        let mini_window_button =
+            button(svg(svg::Handle::from_memory(MINIMIZE_ICON)).style(svg_style_primary))
+                .height(31)
+                .width(38)
+                .style(button_style_transparent)
+                .on_press(Message::MiniWindowToggle);
 
         let top_bar = row![
-            center_x(tabs).padding(Padding::ZERO.left(31)), // padding equal to the mini_window button size
+            center_x(tabs.padding(Padding::ZERO.left(31))), // padding equal to the mini_window button size
             mini_window_button
         ];
 
