@@ -11,6 +11,7 @@ chrono = "0.4.41"
 plotters = "0.3"
 toml = "0.9"
 serde = { version = "1.0", features = ["derive"] }
+rodio = { version = "0.21.1", default-features = false, features = ["minimp3", "playback"] }
 #iced = { version = "0.13.1", features = ["smol", "wgpu"] }
 
 [dependencies.iced]

@@ -44,7 +44,8 @@ impl Pomo {
         )
         .expect("Recording work session into DB failed");
         self.projects.fetch(&self.db); // refresh total work durations per project
-        self.session_start = None
+        self.session_start = None;
+        crate::audio::play_audio(None);
     }
     pub fn check_finished(&mut self) {
         self.time_elapsed().map(|elapsed| {
