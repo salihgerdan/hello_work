@@ -41,8 +41,9 @@ static OKAY_ICON: &[u8] = include_bytes!("../img/check-solid-full.svg");
 static MINIMIZE_ICON: &[u8] = include_bytes!("../img/compress-solid-full.svg");
 
 fn svg_style(theme: &Theme, _status: iced::widget::svg::Status) -> iced::widget::svg::Style {
+    let palette = theme.extended_palette();
     iced::widget::svg::Style {
-        color: Some(theme.palette().background),
+        color: Some(palette.primary.base.text),
     }
 }
 
@@ -58,17 +59,7 @@ fn svg_style_primary(
 fn button_style_transparent(theme: &Theme, _status: button::Status) -> button::Style {
     button::Style {
         background: None,
-        text_color: theme.palette().text,
-        border: iced::Border {
-            color: theme.palette().primary,
-            width: 0.0,
-            radius: iced::border::radius(0),
-        },
-        shadow: iced::Shadow {
-            color: theme.palette().primary,
-            offset: iced::Vector { x: 0.0, y: 0.0 },
-            blur_radius: 0.0,
-        },
+        ..Default::default()
     }
 }
 
