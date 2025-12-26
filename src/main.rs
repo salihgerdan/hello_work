@@ -15,8 +15,8 @@ use iced::{
     theme::{Custom, Palette},
     time,
     widget::{
-        MouseArea, button, center, center_x, column, container, image, pick_list, right, row,
-        scrollable, slider, text, text_input, tooltip,
+        MouseArea, button, center, center_x, column, container, pick_list, right, row, scrollable,
+        slider, svg, text, text_input, tooltip,
     },
     window::{self, Level, Settings},
 };
@@ -34,10 +34,16 @@ const MINI_H: f32 = 65.0;
 const FONT_SANS: iced::Font = iced::Font::with_name("Lato");
 static HELLO_WORK_ICON: &[u8] = include_bytes!("../img/hello_work_pixel.png");
 
-static CONFIG_ICON: &[u8] = include_bytes!("../img/config.png");
-static ADD_ICON: &[u8] = include_bytes!("../img/add.png");
-static ARCHIVE_ICON: &[u8] = include_bytes!("../img/archive.png");
-static OKAY_ICON: &[u8] = include_bytes!("../img/okay.png");
+static CONFIG_ICON: &[u8] = include_bytes!("../img/wrench-solid-full.svg");
+static ADD_ICON: &[u8] = include_bytes!("../img/plus-solid-full.svg");
+static ARCHIVE_ICON: &[u8] = include_bytes!("../img/trash-can-regular-full.svg");
+static OKAY_ICON: &[u8] = include_bytes!("../img/check-solid-full.svg");
+
+fn svg_style(theme: &Theme, _status: iced::widget::svg::Status) -> iced::widget::svg::Style {
+    iced::widget::svg::Style {
+        color: Some(theme.palette().background),
+    }
+}
 
 pub fn main() -> iced::Result {
     let icon = iced::window::icon::from_file_data(HELLO_WORK_ICON, None).ok();
@@ -53,7 +59,7 @@ pub fn main() -> iced::Result {
     app.run_with(move || App::new())
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 enum Tab {
     #[default]
     Main,
@@ -336,16 +342,20 @@ impl App {
                         .on_input(Message::EditProjectNameInput),
                         right(row![
                             button(
-                                image(image::Handle::from_bytes(OKAY_ICON))
+                                svg(svg::Handle::from_memory(OKAY_ICON))
+                                    .style(svg_style)
                                     .height(16)
                                     .width(16)
                             )
+                            .style(button::success)
                             .on_press(Message::EditProjectFinish),
                             button(
-                                image(image::Handle::from_bytes(ARCHIVE_ICON))
+                                svg(svg::Handle::from_memory(ARCHIVE_ICON))
+                                    .style(svg_style)
                                     .height(16)
                                     .width(16)
                             )
+                            .style(button::danger)
                             .on_press(Message::EditProjectArchive),
                         ])
                     ]
@@ -365,13 +375,15 @@ impl App {
                             row![
                                 text!("{ :<4}", (p.total_hours * 10.0).round() / 10.0),
                                 button(
-                                    image(image::Handle::from_bytes(CONFIG_ICON))
+                                    svg(svg::Handle::from_memory(CONFIG_ICON))
+                                        .style(svg_style)
                                         .height(16)
                                         .width(16)
                                 )
                                 .on_press(Message::EditProjectInitiate(p.id)),
                                 button(
-                                    image(image::Handle::from_bytes(ADD_ICON))
+                                    svg(svg::Handle::from_memory(ADD_ICON))
+                                        .style(svg_style)
                                         .height(16)
                                         .width(16)
                                 )
@@ -472,6 +484,7 @@ impl App {
         .spacing(10);
 
         let mini_window_button = button("m")
+            .style(button::secondary)
             .width(31)
             .height(31)
             .on_press(Message::MiniWindowToggle);
