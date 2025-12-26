@@ -11,7 +11,7 @@ mod util;
 
 use chrono::{Datelike, Days, Utc};
 use iced::{
-    Center, Element, Padding, Size, Subscription, Task, Theme, keyboard,
+    Center, Element, Length, Padding, Size, Subscription, Task, Theme, keyboard,
     theme::{Custom, Palette},
     time,
     widget::{
@@ -74,6 +74,7 @@ struct App {
     current_tab: Tab,
     pomo: pomo::Pomo,
     theme: Theme,
+    archive_project_button_confirm: bool,
 }
 
 impl Default for App {
@@ -83,6 +84,7 @@ impl Default for App {
             current_tab: Tab::default(),
             pomo: pomo::Pomo::default(),
             theme: Theme::CatppuccinLatte,
+            archive_project_button_confirm: false,
         };
         //initialize theme here
         app.update_theme();
@@ -196,12 +198,18 @@ impl App {
             }
             Message::EditProjectFinish => {
                 self.pomo.projects.finish_edit(&self.pomo.db);
+                self.archive_project_button_confirm = false;
             }
             Message::EditProjectNameInput(name) => {
                 self.pomo.projects.set_edited_name(name);
             }
             Message::EditProjectArchive => {
-                self.pomo.projects.archive_edited_item(&self.pomo.db);
+                if self.archive_project_button_confirm {
+                    self.pomo.projects.archive_edited_item(&self.pomo.db);
+                    self.archive_project_button_confirm = false;
+                } else {
+                    self.archive_project_button_confirm = true;
+                }
             }
             Message::TabSelected(tab) => {
                 self.current_tab = tab;
@@ -339,15 +347,15 @@ impl App {
                                 .map(|p| p.name.as_str())
                                 .unwrap()
                         )
+                        .width(Length::Fill)
                         .on_input(Message::EditProjectNameInput),
-                        right(row![
+                        row![
                             button(
                                 svg(svg::Handle::from_memory(OKAY_ICON))
                                     .style(svg_style)
                                     .height(16)
                                     .width(16)
                             )
-                            .style(button::success)
                             .on_press(Message::EditProjectFinish),
                             button(
                                 svg(svg::Handle::from_memory(ARCHIVE_ICON))
@@ -355,23 +363,27 @@ impl App {
                                     .height(16)
                                     .width(16)
                             )
-                            .style(button::danger)
+                            .style(if self.archive_project_button_confirm {
+                                button::danger
+                            } else {
+                                button::secondary
+                            })
                             .on_press(Message::EditProjectArchive),
-                        ])
+                        ]
                     ]
                     .height(32)
                     .into()
                 } else {
                     row![
-                        text(util::truncate_with_ellipsis(
+                        text(
                             (0..depth)
                                 .map(|_| "  ")
                                 .chain(iter::once("› "))
                                 .collect::<String>()
-                                + &p.name,
-                            40
-                        )),
-                        right(if self.pomo.projects.get_edited_id().is_none() {
+                                + &p.name
+                        )
+                        .width(Length::Fill),
+                        if self.pomo.projects.get_edited_id().is_none() {
                             row![
                                 text!("{ :<4}", (p.total_hours * 10.0).round() / 10.0),
                                 button(
@@ -391,15 +403,15 @@ impl App {
                             ]
                         } else {
                             row![]
-                        })
+                        }
                     ]
                     .height(32)
                     .into()
                 }
             },
         ))
-        .spacing(3)
-        .max_width(500);
+        .spacing(5)
+        .max_width(550);
 
         let new_button = button("+ New").on_press(Message::NewProject { parent: None });
 
