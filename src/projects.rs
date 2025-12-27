@@ -94,7 +94,9 @@ impl Projects {
         if let Some(edited) = self.edited.as_ref() {
             // archive children too when parent is archived
             let hierarchy = recurse(edited, &self.projects, 0);
-            for (_depth, p) in hierarchy {
+            // reverse to aid the removal, as only leaf nodes can be deleted
+            // any node with children or recorded session will be archived
+            for (_depth, p) in hierarchy.into_iter().rev() {
                 db::archive_project(conn, p.id).expect("Failed to archive project");
             }
         }

@@ -118,12 +118,22 @@ pub fn update_project(db: &Connection, project: &Project) -> Result<usize> {
 }
 
 pub fn archive_project(db: &Connection, id: usize) -> Result<usize> {
-    db.execute(
-        "UPDATE projects
-        SET archived = 1
-        WHERE id = ?1",
+    // permanently delete if the project has no desdendants or any recorded session
+    let recorded_session_count: usize = db.query_row(
+        "SELECT COUNT(time_start) FROM work WHERE project_id = ?1",
         (id,),
-    )
+        |row| row.get(0),
+    )?;
+    let direct_child_count: usize = db.query_row(
+        "SELECT COUNT(id) FROM projects WHERE parent = ?1",
+        (id,),
+        |row| row.get(0),
+    )?;
+    if recorded_session_count == 0 && direct_child_count == 0 {
+        db.execute("DELETE FROM projects WHERE id = ?1", (id,))
+    } else {
+        db.execute("UPDATE projects SET archived = 1 WHERE id = ?1", (id,))
+    }
 }
 
 pub struct WorkSession {
