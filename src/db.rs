@@ -116,7 +116,12 @@ pub fn archive_project(db: &Connection, id: usize) -> Result<usize> {
         |row| row.get(0),
     )?;
     if recorded_session_count == 0 && direct_child_count == 0 {
-        db.execute("DELETE FROM projects WHERE id = ?1", (id,))
+        // clean up tasks associated as well when deleting
+        db.execute(
+            "DELETE FROM tasks WHERE project_id = ?1; 
+                DELETE FROM projects WHERE id = ?1;",
+            (id,),
+        )
     } else {
         db.execute("UPDATE projects SET archived = 1 WHERE id = ?1", (id,))
     }
