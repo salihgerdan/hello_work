@@ -30,6 +30,8 @@ pub struct Config {
     pub work_end_audio: Option<PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub work_end_audio_volume: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    todo_tasks_enabled: Option<bool>,
 }
 
 impl Config {
@@ -60,6 +62,8 @@ impl Config {
         None
     }
     pub fn write_config(&self, file_path: &PathBuf) {
+        // TODO make this private and implement get/set
+        // like the todo_tasks_enabled example
         if let Ok(mut file) = fs::File::create(file_path) {
             let _ = file.write_all(toml::to_string(self).unwrap().as_bytes());
         }
@@ -74,5 +78,12 @@ impl Config {
             })
             .map(|x| x.1)
             .unwrap_or(&color_schemes::CHAOS_THEORY)
+    }
+    pub fn get_todo_tasks_enabled(&self) -> bool {
+        self.todo_tasks_enabled.unwrap_or(true)
+    }
+    pub fn set_todo_tasks_enabled(&mut self, todo_tasks_enabled: bool, file_path: &PathBuf) {
+        self.todo_tasks_enabled = Some(todo_tasks_enabled);
+        self.write_config(file_path);
     }
 }

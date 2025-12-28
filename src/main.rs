@@ -144,6 +144,7 @@ enum Message {
     ThemeChanged(Option<String>),
     FilePickerWorkEndAudio,
     WorkEndAudioVolumeChanged(f32),
+    TodoTasksEnabledConfigChanged(bool),
     NewTodoTask { name: String },
     EditTodoTask { id: usize, name: String },
     DeleteTodoTask { id: usize },
@@ -278,6 +279,11 @@ impl App {
                 self.pomo.change_work_end_audio_volume(Some(volume / 100.0));
                 self.update_theme();
             }
+            Message::TodoTasksEnabledConfigChanged(enabled) => {
+                self.pomo
+                    .config
+                    .set_todo_tasks_enabled(enabled, &self.pomo.config_file_path);
+            }
             Message::EditTodoTask { id, name } => {
                 let conn = &self.pomo.db;
                 self.pomo.tasks.edit(id, name, conn);
@@ -368,7 +374,7 @@ impl App {
 
         // even though we did nothing to switch focus to the new text_input
         // it happens anyway by pure chance, nice
-        let todo_list = scrollable(
+        let todo_list: Element<Message> = scrollable(
             column(self.pomo.tasks.get_all().iter().map(|task| {
                 row![
                     checkbox("", false).on_toggle(|_state| Message::DeleteTodoTask { id: task.id }),
@@ -393,7 +399,9 @@ impl App {
                 .into(),
             ))
             .padding([0, 20]),
-        );
+        )
+        .height(Length::FillPortion(3))
+        .into();
 
         column![
             Space::new(0, Length::FillPortion(2)),
@@ -403,7 +411,11 @@ impl App {
                     .spacing(20)
             )
             .height(Length::FillPortion(5)),
-            todo_list.height(Length::FillPortion(3))
+            if self.pomo.config.get_todo_tasks_enabled() {
+                todo_list
+            } else {
+                Space::new(0, 0).height(Length::FillPortion(2)).into()
+            }
         ]
         .height(Length::Fill)
         .padding(30)
@@ -568,7 +580,13 @@ impl App {
                     .width(130)
                 ]
                 .align_y(Center),
-                row![text("Colors: "), color_scheme_picker].align_y(Center)
+                row![text("Colors: "), color_scheme_picker].align_y(Center),
+                row![
+                    text("Todo: "),
+                    checkbox("", self.pomo.config.get_todo_tasks_enabled())
+                        .on_toggle(Message::TodoTasksEnabledConfigChanged)
+                ]
+                .align_y(Center),
             ]
             .spacing(10)
             .max_width(500)
