@@ -20,6 +20,16 @@ You can see your total hours for the last week (and soon™ other stats too).
 
 Not currently, no. This is to encourage finishing what you started. It does however, undermine the time tracking promise a bit.
 
+### Mac tells me this is trash
+
+<img src="img/screenshots/mac_trash.jpeg" width="300"/>
+
+As this is an unsigned app, you will have to remove the quarantine after installation with the following command in the terminal.
+
+```sh
+xattr -d com.apple.quarantine /Applications/HelloWork.app
+```
+
 ### The mini window does not stay on top under Wayland
 
 Yeah that might happen due to unresolved Wayland limitations, use a window rule from your desktop.
