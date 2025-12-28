@@ -1,10 +1,10 @@
 # Hello Work <img src="img/hello_work_pixel.png" width="40"/>
 
-It's a pomodoro timer, it's a project manager? to-do list (of sorts), and it's a time tracker.
+It's a pomodoro timer, project manager, to-do list. A time tracker? Yeah, if you can quantize all your work into pomodoro sessions.
 
 <img src="img/screenshots/screenshot_main.png" width="300"/>
 
-You can add projects to track time, and an arbitrary depth of sub-projects which you might also call tasks, there's no limit.
+You can add projects and an arbitrary depth of sub-projects. The total hours spent on each project will be displayed in the projects tab, aggregated with its sub-projects.
 
 There's a mini-window to always stay on top of your screen to remind you that a session is going.
 
