@@ -65,17 +65,18 @@ fn button_style_transparent(_theme: &Theme, _status: button::Status) -> button::
 }
 
 fn todo_text_input_style(theme: &Theme, _status: text_input::Status) -> text_input::Style {
+    let palette = theme.extended_palette();
     text_input::Style {
         background: iced::Background::Color(iced::Color::from_rgba(0.0, 0.0, 0.0, 0.0)),
         border: iced::Border {
-            color: theme.palette().background,
+            color: palette.primary.base.color,
             width: 0.0,
             radius: iced::border::radius(0),
         },
-        icon: theme.palette().background,
-        placeholder: theme.palette().text,
-        value: theme.palette().text,
-        selection: theme.palette().primary,
+        icon: palette.background.base.color,
+        placeholder: palette.background.base.text.scale_alpha(0.1),
+        value: palette.background.base.text,
+        selection: palette.primary.base.color,
     }
 }
 
@@ -391,7 +392,7 @@ impl App {
             .extend(iter::once(
                 row![
                     checkbox("", false),
-                    text_input("", "")
+                    text_input("...", "")
                         .style(todo_text_input_style)
                         .on_input(|s| Message::NewTodoTask { name: s })
                 ]
