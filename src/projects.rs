@@ -1,8 +1,24 @@
+use rusqlite::Connection;
+use std::fmt::Display;
 use std::iter;
 
-use rusqlite::Connection;
+use crate::db;
 
-use crate::db::{self, Project};
+#[derive(PartialEq, Clone, Debug, Default)]
+pub struct Project {
+    pub id: usize,
+    pub name: String,
+    pub target_hours: Option<f32>,
+    pub parent: Option<usize>,
+    pub children: Vec<usize>,
+    pub total_hours: f32,
+}
+
+impl Display for Project {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.name)
+    }
+}
 
 // A struct for caching project data to minimize DB access
 pub struct Projects {

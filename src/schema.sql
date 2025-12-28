@@ -16,6 +16,14 @@ CREATE TABLE IF NOT EXISTS work (
         REFERENCES projects (id)
 );
 
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    project_id INTEGER,
+    FOREIGN KEY (project_id)
+        REFERENCES projects (id)
+);
+
 CREATE VIEW IF NOT EXISTS work_totals AS 
 	SELECT
 		project_id,

@@ -1,28 +1,14 @@
-use std::{fmt::Display, path::Path};
+use std::path::Path;
 
 use chrono::{NaiveDate, NaiveTime};
 use rusqlite::{Connection, Result};
+
+use crate::{projects::Project, todo_tasks::TodoTask};
 
 pub fn init_db(path: &Path) -> Connection {
     let conn = Connection::open(path).expect("Failed to open database");
     conn.execute_batch(include_str!("schema.sql")).unwrap();
     conn
-}
-
-#[derive(PartialEq, Clone, Debug, Default)]
-pub struct Project {
-    pub id: usize,
-    pub name: String,
-    pub target_hours: Option<f32>,
-    pub parent: Option<usize>,
-    pub children: Vec<usize>,
-    pub total_hours: f32,
-}
-
-impl Display for Project {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.name)
-    }
 }
 
 pub fn get_projects(db: &Connection) -> Result<Vec<Project>> {
@@ -172,4 +158,64 @@ pub fn get_work_hours_for_day(db: &Connection, day: &NaiveDate) -> Result<f32> {
         |row| row.get(0),
     )
     .map(|secs| secs.unwrap_or(0.0) / (60.0 * 60.0))
+}
+
+pub fn get_tasks(db: &Connection, project_id: Option<usize>) -> Result<Vec<TodoTask>> {
+    let mut stmt = db.prepare(
+        "SELECT
+            id,
+            name
+        FROM
+            tasks
+        WHERE
+            project_id = ?1",
+    )?;
+    let mut stmt_null = db.prepare(
+        "SELECT
+            id,
+            name
+        FROM
+            tasks
+        WHERE
+            project_id IS NULL",
+    )?;
+    if let Some(project_id) = project_id {
+        stmt.query_map((project_id,), |row| {
+            Ok(TodoTask {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
+        })?
+        .collect()
+    } else {
+        stmt_null
+            .query_map((), |row| {
+                Ok(TodoTask {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                })
+            })?
+            .collect()
+    }
+}
+
+pub fn add_task(db: &Connection, name: String, project_id: Option<usize>) -> Result<usize> {
+    db.query_row(
+        "INSERT INTO tasks (name, project_id) VALUES (?1, ?2) RETURNING id",
+        (name, project_id),
+        |row| row.get(0),
+    )
+}
+
+pub fn update_task(db: &Connection, id: usize, name: String) -> Result<usize> {
+    db.execute(
+        "UPDATE tasks
+        SET name = ?2
+        WHERE id = ?1",
+        (id, name),
+    )
+}
+
+pub fn delete_task(db: &Connection, id: usize) -> Result<usize> {
+    db.execute("DELETE FROM tasks WHERE id = ?1", (id,))
 }

@@ -7,6 +7,7 @@ mod db;
 mod pomo;
 mod projects;
 mod stats;
+mod todo_tasks;
 mod util;
 
 use chrono::{Datelike, Days, Utc};
@@ -15,8 +16,8 @@ use iced::{
     theme::{Custom, Palette},
     time,
     widget::{
-        MouseArea, button, center, center_x, column, container, pick_list, row, scrollable, slider,
-        svg, text, text_input, tooltip,
+        MouseArea, Space, button, center, center_x, checkbox, column, container, pick_list, row,
+        scrollable, slider, svg, text, text_input, tooltip,
     },
     window::{self, Level, Settings},
 };
@@ -60,6 +61,21 @@ fn button_style_transparent(_theme: &Theme, _status: button::Status) -> button::
     button::Style {
         background: None,
         ..Default::default()
+    }
+}
+
+fn todo_text_input_style(theme: &Theme, _status: text_input::Status) -> text_input::Style {
+    text_input::Style {
+        background: iced::Background::Color(iced::Color::from_rgba(0.0, 0.0, 0.0, 0.0)),
+        border: iced::Border {
+            color: theme.palette().background,
+            width: 0.0,
+            radius: iced::border::radius(0),
+        },
+        icon: theme.palette().background,
+        placeholder: theme.palette().text,
+        value: theme.palette().text,
+        selection: theme.palette().primary,
     }
 }
 
@@ -128,6 +144,9 @@ enum Message {
     ThemeChanged(Option<String>),
     FilePickerWorkEndAudio,
     WorkEndAudioVolumeChanged(f32),
+    NewTodoTask { name: String },
+    EditTodoTask { id: usize, name: String },
+    DeleteTodoTask { id: usize },
 }
 
 impl App {
@@ -207,6 +226,7 @@ impl App {
             }
             Message::ProjectSelected(id) => {
                 self.pomo.projects.set_active(Some(id));
+                self.pomo.tasks.switch_project(&self.pomo.db, Some(id));
             }
             Message::NewProject { parent } => {
                 self.pomo.projects.add(parent, &self.pomo.db);
@@ -257,6 +277,20 @@ impl App {
                 // the slider uses 0.0..=100.0 while the real volume goes up to 1.0
                 self.pomo.change_work_end_audio_volume(Some(volume / 100.0));
                 self.update_theme();
+            }
+            Message::EditTodoTask { id, name } => {
+                let conn = &self.pomo.db;
+                self.pomo.tasks.edit(id, name, conn);
+            }
+            Message::NewTodoTask { name } => {
+                let conn = &self.pomo.db;
+                self.pomo
+                    .tasks
+                    .add(name, self.pomo.projects.get_active(), conn);
+            }
+            Message::DeleteTodoTask { id } => {
+                let conn = &self.pomo.db;
+                self.pomo.tasks.delete(id, conn);
             }
         }
         Task::none()
@@ -332,11 +366,47 @@ impl App {
             |p| Message::ProjectSelected(p.id),
         );
 
-        center(
-            column![duration, toggle_button, project_picker]
-                .align_x(Center)
-                .spacing(20),
-        )
+        // even though we did nothing to switch focus to the new text_input
+        // it happens anyway by pure chance, nice
+        let todo_list = scrollable(
+            column(self.pomo.tasks.get_all().iter().map(|task| {
+                row![
+                    checkbox("", false).on_toggle(|_state| Message::DeleteTodoTask { id: task.id }),
+                    text_input("", &task.name)
+                        .style(todo_text_input_style)
+                        .on_input(|s| Message::EditTodoTask {
+                            id: task.id,
+                            name: s,
+                        })
+                ]
+                .align_y(Center)
+                .into()
+            }))
+            .extend(iter::once(
+                row![
+                    checkbox("", false),
+                    text_input("", "")
+                        .style(todo_text_input_style)
+                        .on_input(|s| Message::NewTodoTask { name: s })
+                ]
+                .align_y(Center)
+                .into(),
+            ))
+            .padding([0, 20]),
+        );
+
+        column![
+            Space::new(0, Length::FillPortion(2)),
+            center(
+                column![duration, toggle_button, project_picker]
+                    .align_x(Center)
+                    .spacing(20)
+            )
+            .height(Length::FillPortion(5)),
+            todo_list.height(Length::FillPortion(3))
+        ]
+        .height(Length::Fill)
+        .padding(30)
         .into()
     }
 

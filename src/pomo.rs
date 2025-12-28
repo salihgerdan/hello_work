@@ -2,6 +2,7 @@ use crate::{
     config::{self, Config},
     db,
     projects::Projects,
+    todo_tasks::TodoTasks,
 };
 use rusqlite::Connection;
 use std::{
@@ -16,6 +17,7 @@ pub struct Pomo {
     pub config_file_path: PathBuf,
     pub config: Config,
     pub projects: Projects,
+    pub tasks: TodoTasks,
 }
 
 impl Pomo {
@@ -98,6 +100,7 @@ impl Default for Pomo {
             session_start: None,
             session_length: (config.session_length.unwrap_or(25.0) * 60.0) as u64,
             projects: Projects::new(&conn),
+            tasks: TodoTasks::new(&conn, None),
             config_file_path,
             config,
             db: conn,
