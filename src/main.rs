@@ -10,7 +10,7 @@ mod stats;
 mod todo_tasks;
 mod util;
 
-use chrono::{Datelike, Days, Utc};
+use chrono::Datelike;
 use iced::{
     Center, Element, Length, Padding, Size, Subscription, Task, Theme, keyboard,
     theme::{Custom, Palette},
@@ -146,6 +146,7 @@ enum Message {
     FilePickerWorkEndAudio,
     WorkEndAudioVolumeChanged(f32),
     TodoTasksEnabledConfigChanged(bool),
+    DayEndOffsetHoursConfigChanged(String),
     NewTodoTask { name: String },
     EditTodoTask { id: usize, name: String },
     DeleteTodoTask { id: usize },
@@ -284,6 +285,13 @@ impl App {
                 self.pomo
                     .config
                     .set_todo_tasks_enabled(enabled, &self.pomo.config_file_path);
+            }
+            Message::DayEndOffsetHoursConfigChanged(offset_hours) => {
+                if let Ok(offset_hours) = offset_hours.parse::<u32>() {
+                    self.pomo
+                        .config
+                        .set_day_end_offset_hours(offset_hours, &self.pomo.config_file_path);
+                }
             }
             Message::EditTodoTask { id, name } => {
                 let conn = &self.pomo.db;
@@ -548,6 +556,21 @@ impl App {
                 ]
                 .align_y(Center),
                 row![
+                    text("Day Ends @: "),
+                    tooltip(
+                        text_input("", &self.pomo.config.get_day_end_offset_hours().to_string())
+                            .width(70)
+                            .on_input(Message::DayEndOffsetHoursConfigChanged),
+                        container(
+                            "Set offset hours. Defaults to 3 AM. This only affects the statistics view"
+                        )
+                        .padding(10)
+                        .style(container::rounded_box),
+                        tooltip::Position::Bottom,
+                    )
+                ]
+                .align_y(Center),
+                row![
                     text("Audio: "),
                     text(
                         self.pomo
@@ -676,7 +699,8 @@ impl pliced::Program<Message> for App {
         _bounds: iced::Rectangle,
         _cursor: iced::mouse::Cursor,
     ) {
-        let data = stats::last_week_chart(&self.pomo.db);
+        let day_end_offset_hours = self.pomo.config.get_day_end_offset_hours();
+        let data = stats::last_week_chart(&self.pomo.db, day_end_offset_hours);
 
         let sub_c = &self.pomo.config.get_color_scheme().sub_color;
         let color = plotters::style::RGBColor(sub_c.r, sub_c.g, sub_c.b);
@@ -690,6 +714,9 @@ impl pliced::Program<Message> for App {
             stroke_width: 2,
         };
 
+        let x_min = data.last().unwrap().0;
+        let x_max = data.first().unwrap().0;
+
         let y_max = data
             .iter()
             .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
@@ -700,13 +727,7 @@ impl pliced::Program<Message> for App {
             .margin(5)
             .x_label_area_size(30)
             .y_label_area_size(30)
-            .build_cartesian_2d(
-                Utc::now()
-                    .date_naive()
-                    .checked_sub_days(Days::new(6))
-                    .unwrap()..Utc::now().date_naive(),
-                0.0_f32..y_max,
-            )
+            .build_cartesian_2d(x_min..x_max, 0.0_f32..y_max)
             .unwrap();
 
         chart

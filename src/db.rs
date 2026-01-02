@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use chrono::{NaiveDate, NaiveTime};
+use chrono::{Local, NaiveDate, NaiveTime, TimeDelta};
 use rusqlite::{Connection, Result};
 
 use crate::{projects::Project, todo_tasks::TodoTask};
@@ -141,22 +141,27 @@ pub fn add_work_session(db: &Connection, work_session: &WorkSession) -> Result<u
     )
 }
 
-pub fn get_work_hours_for_day(db: &Connection, day: &NaiveDate) -> Result<f32> {
+pub fn get_work_hours_for_day(
+    db: &Connection,
+    day: &NaiveDate,
+    config_offset_hours: u32,
+) -> Result<f32> {
+    let local_offset = Local::now().offset().clone();
     let day_start = day
         .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
-        .and_utc()
-        .timestamp();
-    let next_day_start = day
-        .succ_opt()
+        .checked_add_offset(local_offset)
         .unwrap()
-        .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
-        .and_utc()
-        .timestamp();
+        .checked_add_signed(TimeDelta::hours((config_offset_hours % 24) as i64))
+        .unwrap();
+    let next_day_start = day_start.checked_add_signed(TimeDelta::hours(24)).unwrap();
     db.query_row::<Option<f32>, _, _>(
         "SELECT SUM(duration)
         FROM work
         WHERE time_start >= ?1 AND time_start < ?2",
-        (day_start, next_day_start),
+        (
+            day_start.and_utc().timestamp(),
+            next_day_start.and_utc().timestamp(),
+        ),
         |row| row.get(0),
     )
     .map(|secs| secs.unwrap_or(0.0) / (60.0 * 60.0))

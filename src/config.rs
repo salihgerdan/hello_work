@@ -32,6 +32,8 @@ pub struct Config {
     pub work_end_audio_volume: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     todo_tasks_enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    day_end_offset_hours: Option<u32>,
 }
 
 impl Config {
@@ -84,6 +86,13 @@ impl Config {
     }
     pub fn set_todo_tasks_enabled(&mut self, todo_tasks_enabled: bool, file_path: &PathBuf) {
         self.todo_tasks_enabled = Some(todo_tasks_enabled);
+        self.write_config(file_path);
+    }
+    pub fn get_day_end_offset_hours(&self) -> u32 {
+        self.day_end_offset_hours.unwrap_or(3)
+    }
+    pub fn set_day_end_offset_hours(&mut self, day_end_offset_hours: u32, file_path: &PathBuf) {
+        self.day_end_offset_hours = Some(day_end_offset_hours);
         self.write_config(file_path);
     }
 }
