@@ -146,10 +146,10 @@ pub fn get_work_hours_for_day(
     day: &NaiveDate,
     config_offset_hours: u32,
 ) -> Result<f32> {
-    let local_offset = Local::now().offset().clone();
+    //let local_offset = Local::now().offset().clone();
     let day_start = day
         .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
-        .checked_add_offset(local_offset)
+        .and_local_timezone(Local::now().timezone())
         .unwrap()
         .checked_add_signed(TimeDelta::hours((config_offset_hours % 24) as i64))
         .unwrap();
@@ -158,10 +158,7 @@ pub fn get_work_hours_for_day(
         "SELECT SUM(duration)
         FROM work
         WHERE time_start >= ?1 AND time_start < ?2",
-        (
-            day_start.and_utc().timestamp(),
-            next_day_start.and_utc().timestamp(),
-        ),
+        (day_start.timestamp(), next_day_start.timestamp()),
         |row| row.get(0),
     )
     .map(|secs| secs.unwrap_or(0.0) / (60.0 * 60.0))
