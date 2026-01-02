@@ -110,16 +110,23 @@ struct App {
     pomo: pomo::Pomo,
     theme: Theme,
     archive_project_button_confirm: bool,
+    input_session_length: String,
+    input_day_end_offset_hours: String,
 }
 
 impl Default for App {
     fn default() -> Self {
+        let pomo = pomo::Pomo::default();
+        let input_session_length = (pomo.session_length / 60).to_string();
+        let input_day_end_offset_hours = pomo.config.get_day_end_offset_hours().to_string();
         let mut app = App {
             mini_window: false,
             current_tab: Tab::default(),
-            pomo: pomo::Pomo::default(),
+            pomo,
             theme: Theme::CatppuccinLatte,
             archive_project_button_confirm: false,
+            input_day_end_offset_hours,
+            input_session_length,
         };
         //initialize theme here
         app.update_theme();
@@ -256,8 +263,9 @@ impl App {
                 self.current_tab = tab;
             }
             Message::SessionLengthChanged(session_length) => {
+                self.input_session_length = session_length;
                 // session length is input as minutes in the interface
-                if let Ok(new_in_min) = session_length.parse::<f64>() {
+                if let Ok(new_in_min) = self.input_session_length.parse::<f64>() {
                     self.pomo.change_session_length(new_in_min);
                 }
             }
@@ -287,7 +295,8 @@ impl App {
                     .set_todo_tasks_enabled(enabled, &self.pomo.config_file_path);
             }
             Message::DayEndOffsetHoursConfigChanged(offset_hours) => {
-                if let Ok(offset_hours) = offset_hours.parse::<u32>() {
+                self.input_day_end_offset_hours = offset_hours;
+                if let Ok(offset_hours) = self.input_day_end_offset_hours.parse::<u32>() {
                     self.pomo
                         .config
                         .set_day_end_offset_hours(offset_hours, &self.pomo.config_file_path);
@@ -550,7 +559,7 @@ impl App {
             column![
                 row![
                     text("Session Length: "),
-                    text_input("", &(self.pomo.session_length / 60).to_string())
+                    text_input("", &self.input_session_length)
                         .width(70)
                         .on_input(Message::SessionLengthChanged)
                 ]
@@ -558,7 +567,7 @@ impl App {
                 row![
                     text("Day Ends @: "),
                     tooltip(
-                        text_input("", &self.pomo.config.get_day_end_offset_hours().to_string())
+                        text_input("", &self.input_day_end_offset_hours)
                             .width(70)
                             .on_input(Message::DayEndOffsetHoursConfigChanged),
                         container(
