@@ -571,7 +571,7 @@ impl App {
                             .width(70)
                             .on_input(Message::DayEndOffsetHoursConfigChanged),
                         container(
-                            "Set offset hours. Defaults to 3 AM. This only affects the statistics view"
+                            "Set offset hours. Defaults to 3 AM. Input 0 for midnight. This only affects the statistics view"
                         )
                         .padding(10)
                         .style(container::rounded_box),
