@@ -2,6 +2,7 @@
 
 pub struct Color { pub r: u8, pub g: u8, pub b: u8 }
 
+#[allow(unused)]
 pub struct ColorScheme {
     pub bg_color: Color,
     pub main_color: Color,
