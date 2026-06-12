@@ -13,6 +13,7 @@ use std::{
 pub struct Pomo {
     pub session_length: u64,
     pub session_start: Option<SystemTime>,
+    pub partial_start: Option<SystemTime>,
     pub db: Connection,
     pub config_file_path: PathBuf,
     pub config: Config,
@@ -25,45 +26,96 @@ impl Pomo {
         self.session_start.is_some()
     }
     pub fn init_session(&mut self) {
-        self.session_start = Some(SystemTime::now())
+        self.session_start = Some(SystemTime::now());
+        self.partial_start = Some(SystemTime::now());
     }
     pub fn cancel_session(&mut self) {
-        self.session_start = None
+        self.save_partial_session_if_enabled();
+        self.session_start = None;
+        self.partial_start = None;
     }
     fn finish_session(&mut self) {
+        let already_recorded = (self
+            .partial_start
+            .unwrap()
+            .duration_since(self.session_start.unwrap()))
+        .unwrap()
+        .as_secs();
+
+        let duration_secs = self.session_length - already_recorded;
+
+        let start_unix = self
+            .partial_start
+            .unwrap()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
         db::add_work_session(
             &self.db,
             &db::WorkSession {
-                time_start: self
-                    .session_start
-                    .unwrap()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
-                duration: self.session_length,
+                time_start: start_unix,
+                duration: duration_secs,
                 project_id: self.projects.get_active(),
             },
         )
         .expect("Recording work session into DB failed");
+        println!("Session: {start_unix}, {duration_secs}");
         self.projects.fetch(&self.db); // refresh total work durations per project
+
         self.session_start = None;
+        self.partial_start = None;
         crate::audio::play_audio(
             self.config.work_end_audio.clone(),
             self.config.work_end_audio_volume.unwrap_or(1.0),
         );
     }
+    pub fn save_partial_session_if_enabled(&mut self) {
+        if !self.config.get_save_partial_sessions() {
+            return;
+        }
+
+        let duration_secs = self.partial_elapsed().unwrap().as_secs();
+
+        // Only save if some meaningful progress was made
+        if duration_secs > 30 {
+            let partial_start_unix = self
+                .partial_start
+                .unwrap()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+
+            db::add_work_session(
+                &self.db,
+                &db::WorkSession {
+                    time_start: partial_start_unix,
+                    duration: duration_secs,
+                    project_id: self.projects.get_active(),
+                },
+            )
+            .expect("Recording partial work session into DB failed");
+            println!("Partial session: {partial_start_unix}, {duration_secs}");
+            self.partial_start = Some(SystemTime::now());
+
+            self.projects.fetch(&self.db); // Refresh total project hours
+        }
+    }
     pub fn check_finished(&mut self) {
-        self.time_elapsed().map(|elapsed| {
+        self.session_elapsed().map(|elapsed| {
             if elapsed.as_secs() >= self.session_length {
                 self.finish_session();
             }
         });
     }
-    pub fn time_elapsed(&self) -> Option<Duration> {
+    pub fn session_elapsed(&self) -> Option<Duration> {
         self.session_start.and_then(|s| s.elapsed().ok())
     }
+    pub fn partial_elapsed(&self) -> Option<Duration> {
+        self.partial_start.and_then(|s| s.elapsed().ok())
+    }
     pub fn countdown_string(&self) -> String {
-        match self.time_elapsed() {
+        match self.session_elapsed() {
             Some(t) => {
                 let secs = t.as_secs();
                 let rem = self.session_length - secs;
@@ -98,6 +150,7 @@ impl Default for Pomo {
         let conn = db::init_db(&config::config_dir().join("hellowork.db"));
         let pomo = Self {
             session_start: None,
+            partial_start: None,
             session_length: (config.session_length.unwrap_or(25.0) * 60.0) as u64,
             projects: Projects::new(&conn),
             tasks: TodoTasks::new(&conn, None),

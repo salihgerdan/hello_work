@@ -153,6 +153,7 @@ enum Message {
     FilePickerWorkEndAudio,
     WorkEndAudioVolumeChanged(f32),
     TodoTasksEnabledConfigChanged(bool),
+    SavePartialSessionsConfigChanged(bool),
     DayEndOffsetHoursConfigChanged(String),
     NewTodoTask { name: String },
     EditTodoTask { id: usize, name: String },
@@ -235,6 +236,11 @@ impl App {
                 }
             }
             Message::ProjectSelected(id) => {
+                // If a session is active, save progress accrued for the old project
+                if self.pomo.is_running() {
+                    self.pomo.save_partial_session_if_enabled();
+                }
+
                 self.pomo.projects.set_active(Some(id));
                 self.pomo.tasks.switch_project(&self.pomo.db, Some(id));
             }
@@ -293,6 +299,11 @@ impl App {
                 self.pomo
                     .config
                     .set_todo_tasks_enabled(enabled, &self.pomo.config_file_path);
+            }
+            Message::SavePartialSessionsConfigChanged(enabled) => {
+                self.pomo
+                    .config
+                    .set_save_partial_sessions(enabled, &self.pomo.config_file_path);
             }
             Message::DayEndOffsetHoursConfigChanged(offset_hours) => {
                 self.input_day_end_offset_hours = offset_hours;
@@ -504,7 +515,7 @@ impl App {
                         .width(Length::Fill),
                         if self.pomo.projects.get_edited_id().is_none() {
                             row![
-                                text!("{ :<4}", (p.total_hours * 10.0).round() / 10.0),
+                                text!("{:<4}", (p.total_hours * 10.0).round() / 10.0),
                                 button(
                                     svg(svg::Handle::from_memory(CONFIG_ICON))
                                         .style(svg_style)
@@ -618,6 +629,22 @@ impl App {
                     text("Todo: "),
                     checkbox("", self.pomo.config.get_todo_tasks_enabled())
                         .on_toggle(Message::TodoTasksEnabledConfigChanged)
+                ]
+                .align_y(Center),
+                row![
+                    text("Save Partial Sessions?"),
+                    tooltip(
+                        if self.pomo.is_running() { // disable if running
+                            checkbox("", self.pomo.config.get_save_partial_sessions())
+                        } else {
+                            checkbox("", self.pomo.config.get_save_partial_sessions())
+                                .on_toggle(Message::SavePartialSessionsConfigChanged)
+                        },
+                        container("Saves on project change or when you click Stop. Disabling forces you to finish what you started.")
+                        .padding(10)
+                        .style(container::rounded_box),
+                        tooltip::Position::Bottom,
+                    ),
                 ]
                 .align_y(Center),
             ]

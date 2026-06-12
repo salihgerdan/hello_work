@@ -16,10 +16,6 @@ You can see your total hours for the last week (and soon™ other stats too).
 
 ## FAQ
 
-### Does it save my session when I click "Stop"?
-
-Not currently, no. This is to encourage finishing what you started. It does however, undermine the time tracking promise a bit.
-
 ### Mac tells me this is trash
 
 <img src="img/screenshots/mac_trash.jpeg" width="300"/>
