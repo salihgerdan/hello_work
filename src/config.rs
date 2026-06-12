@@ -17,6 +17,33 @@ pub fn config_dir() -> PathBuf {
     dir
 }
 
+#[derive(Deserialize, Serialize, Clone, Copy)]
+pub struct WindowGeometry {
+    pub width: f32,
+    pub height: f32,
+    pub x: Option<f32>,
+    pub y: Option<f32>,
+}
+
+impl WindowGeometry {
+    fn default_main() -> Self {
+        Self {
+            width: 400.0,
+            height: 600.0,
+            x: None,
+            y: None,
+        }
+    }
+    fn default_mini() -> Self {
+        Self {
+            width: 110.0,
+            height: 65.0,
+            x: None,
+            y: None,
+        }
+    }
+}
+
 // be careful when changing field names
 // we skip serializing on Option::None to avoid locking in default values
 #[derive(Deserialize, Serialize, Default)]
@@ -36,6 +63,10 @@ pub struct Config {
     day_end_offset_hours: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     save_partial_sessions: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    main_window_geometry: Option<WindowGeometry>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mini_window_geometry: Option<WindowGeometry>,
 }
 
 impl Config {
@@ -102,6 +133,22 @@ impl Config {
     }
     pub fn set_save_partial_sessions(&mut self, save_partial_sessions: bool, file_path: &PathBuf) {
         self.save_partial_sessions = Some(save_partial_sessions);
+        self.write_config(file_path);
+    }
+    pub fn get_main_window_geometry(&self) -> WindowGeometry {
+        self.main_window_geometry
+            .unwrap_or(WindowGeometry::default_main())
+    }
+    pub fn set_main_window_geometry(&mut self, geometry: WindowGeometry, file_path: &PathBuf) {
+        self.main_window_geometry = Some(geometry);
+        self.write_config(file_path);
+    }
+    pub fn get_mini_window_geometry(&self) -> WindowGeometry {
+        self.mini_window_geometry
+            .unwrap_or(WindowGeometry::default_mini())
+    }
+    pub fn set_mini_window_geometry(&mut self, geometry: WindowGeometry, file_path: &PathBuf) {
+        self.mini_window_geometry = Some(geometry);
         self.write_config(file_path);
     }
 }
