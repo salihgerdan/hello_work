@@ -152,7 +152,7 @@ impl Default for Pomo {
             session_start: None,
             partial_start: None,
             session_length: (config.session_length.unwrap_or(25.0) * 60.0) as u64,
-            projects: Projects::new(&conn),
+            projects: Projects::new(&conn, config.get_last_active_project()),
             tasks: TodoTasks::new(&conn, None),
             config_file_path,
             config,

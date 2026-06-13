@@ -44,10 +44,10 @@ fn recurse<'a>(
 }
 
 impl Projects {
-    pub fn new(conn: &Connection) -> Self {
+    pub fn new(conn: &Connection, last_active: Option<usize>) -> Self {
         let mut p = Projects {
             projects: vec![],
-            active: None,
+            active: last_active,
             edited: None,
         };
         p.fetch(conn);

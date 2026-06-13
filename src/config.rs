@@ -67,6 +67,8 @@ pub struct Config {
     main_window_geometry: Option<WindowGeometry>,
     #[serde(skip_serializing_if = "Option::is_none")]
     mini_window_geometry: Option<WindowGeometry>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    last_active_project: Option<usize>,
 }
 
 impl Config {
@@ -149,6 +151,13 @@ impl Config {
     }
     pub fn set_mini_window_geometry(&mut self, geometry: WindowGeometry, file_path: &PathBuf) {
         self.mini_window_geometry = Some(geometry);
+        self.write_config(file_path);
+    }
+    pub fn get_last_active_project(&self) -> Option<usize> {
+        self.last_active_project
+    }
+    pub fn set_last_active_project(&mut self, active: usize, file_path: &PathBuf) {
+        self.last_active_project = Some(active);
         self.write_config(file_path);
     }
 }

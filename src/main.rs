@@ -290,6 +290,9 @@ impl App {
                 }
 
                 self.pomo.projects.set_active(Some(id));
+                self.pomo
+                    .config
+                    .set_last_active_project(id, &self.pomo.config_file_path);
                 self.pomo.tasks.switch_project(&self.pomo.db, Some(id));
             }
             Message::NewProject { parent } => {
