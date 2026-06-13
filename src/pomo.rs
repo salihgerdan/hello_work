@@ -42,7 +42,9 @@ impl Pomo {
         .unwrap()
         .as_secs();
 
-        let duration_secs = self.session_length - already_recorded;
+        // saturating_sub goes to 0 if session_length is smaller than already_recorded
+        // which might happen with config modifications
+        let duration_secs = self.session_length.saturating_sub(already_recorded);
 
         let start_unix = self
             .partial_start
