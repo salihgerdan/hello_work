@@ -181,10 +181,11 @@ impl App {
         match message {
             Message::Ignore => {}
             Message::Toggle => {
-                if self.pomo.is_running() {
-                    self.pomo.cancel_session();
-                } else {
+                if !self.pomo.is_running() {
                     self.pomo.init_session();
+                } else if self.pomo.is_running() && !self.mini_window {
+                    // disabled cancelling from the mini window, too easy to accidentally do it
+                    self.pomo.cancel_session();
                 }
             }
             Message::Tick => {
