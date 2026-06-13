@@ -12,14 +12,14 @@ mod util;
 
 use chrono::Datelike;
 use iced::{
-    Center, Element, Length, Padding, Size, Subscription, Task, Theme, keyboard,
+    Center, Element, Length, Padding, Point, Size, Subscription, Task, Theme, keyboard,
     theme::{Custom, Palette},
     time,
     widget::{
         MouseArea, Space, button, center, center_x, checkbox, column, container, pick_list, row,
         scrollable, slider, svg, text, text_input, tooltip,
     },
-    window::{self, Level, Settings},
+    window::{self, Level, Position, Settings},
 };
 use pliced::Chart;
 use plotters::{prelude::*, style::Color};
@@ -27,10 +27,7 @@ use std::iter;
 use std::time::Duration;
 use std::{env, sync::Arc};
 
-const MAIN_W: f32 = 400.0;
-const MAIN_H: f32 = 600.0;
-const MINI_W: f32 = 110.0;
-const MINI_H: f32 = 65.0;
+use crate::config::WindowGeometry;
 
 const FONT_SANS: iced::Font = iced::Font::with_name("Lato");
 static HELLO_WORK_ICON: &[u8] = include_bytes!("../img/hello_work_pixel.png");
@@ -82,6 +79,17 @@ fn todo_text_input_style(theme: &Theme, _status: text_input::Status) -> text_inp
 
 pub fn main() -> iced::Result {
     let icon = iced::window::icon::from_file_data(HELLO_WORK_ICON, None).ok();
+    let app_obj = App::new();
+
+    let geo = app_obj.0.pomo.config.get_main_window_geometry();
+    let point_opt = geo.x.zip(geo.y).map(|(x, y)| Point { x, y });
+    let position = if let Some(point) = point_opt {
+        Position::Specific(point)
+    } else {
+        Position::Default
+    };
+    let window_size = Size::new(geo.width, geo.height);
+
     let app = iced::application(App::title, App::update, App::view)
         .subscription(App::subscription)
         .theme(App::theme)
@@ -90,8 +98,9 @@ pub fn main() -> iced::Result {
             ..Default::default()
         })
         .default_font(FONT_SANS)
-        .window_size(Size::new(MAIN_W, MAIN_H));
-    app.run_with(move || App::new())
+        .window_size(window_size)
+        .position(position);
+    app.run_with(move || app_obj)
 }
 
 #[derive(Default, Debug, Clone, PartialEq)]
@@ -140,6 +149,7 @@ enum Message {
     Toggle,
     Tick,
     DragMove,
+    StoreWindowGeometry { event: iced::window::Event },
     MiniWindowToggle,
     ProjectSelected(usize),
     NewProject { parent: Option<usize> },
@@ -184,56 +194,93 @@ impl App {
                 return window::get_latest()
                     .and_then(|window_id: window::Id| window::drag::<Message>(window_id));
             }
+            Message::StoreWindowGeometry { event } => {
+                // This actually processes all window events, but we ignore the ones other than Resized and Moved
+                let geometry = if self.mini_window {
+                    self.pomo.config.get_mini_window_geometry()
+                } else {
+                    self.pomo.config.get_main_window_geometry()
+                };
+                let new_geometry = match event {
+                    iced::window::Event::Moved(p) => Some(WindowGeometry {
+                        width: geometry.width,
+                        height: geometry.height,
+                        x: Some(p.x),
+                        y: Some(p.y),
+                    }),
+                    iced::window::Event::Resized(s) => Some(WindowGeometry {
+                        width: s.width,
+                        height: s.height,
+                        x: geometry.x,
+                        y: geometry.y,
+                    }),
+                    _ => None,
+                };
+                if let Some(new_geometry) = new_geometry {
+                    if self.mini_window {
+                        self.pomo
+                            .config
+                            .set_mini_window_geometry(new_geometry, &self.pomo.config_file_path);
+                    } else {
+                        self.pomo
+                            .config
+                            .set_main_window_geometry(new_geometry, &self.pomo.config_file_path);
+                    }
+                }
+            }
             Message::MiniWindowToggle => {
                 self.mini_window = !self.mini_window;
 
-                let is_wayland = match env::var("XDG_SESSION_TYPE") {
-                    Ok(val) => val == "wayland",
-                    Err(_) => false,
+                if self.mini_window {
+                    self.current_tab = Tab::Main; // Always switch to main tab, stats tab crashes when coming from mini
+                }
+
+                let geo = if self.mini_window {
+                    self.pomo.config.get_mini_window_geometry()
+                } else {
+                    self.pomo.config.get_main_window_geometry()
                 };
 
-                // If we're working under Wayland, create a new window with the
-                // desired size, otherwise modify the current window.
-                // This is because Wayland doesn't let us modify our current window
-                // effectively, for some reason.
+                let size = Size::new(geo.width, geo.height);
+                let point_opt = geo.x.zip(geo.y).map(|(x, y)| Point { x, y });
 
-                if self.mini_window {
-                    if is_wayland {
-                        return window::get_latest().and_then(|window_id| -> Task<Message> {
-                            let mut settings = Settings::default();
-                            settings.size = Size::new(MINI_W, MINI_H);
-                            settings.decorations = false;
-                            settings.level = Level::AlwaysOnTop;
-                            window::close(window_id).chain(window::open(settings).1.discard())
-                        });
-                    } else {
-                        return window::get_latest().and_then(|window_id| -> Task<Message> {
-                            window::set_level::<Message>(window_id, window::Level::AlwaysOnTop)
-                                .chain(window::toggle_decorations(window_id))
-                                .chain(window::resize(window_id, Size::new(MINI_W, MINI_H)))
-                            // the order matters, first toggle decorations then resize
-                            // to avoid ending up with a larger than intended window,
-                            // as Windows compensates for the lost decoration space by growing the inner size
-                        });
-                    }
+                let position = if let Some(point) = point_opt {
+                    Position::Specific(point)
                 } else {
-                    if is_wayland {
-                        self.current_tab = Tab::Main; // Always switch to main tab, stats tab crashes when coming from mini
-                        return window::get_latest().and_then(|window_id| -> Task<Message> {
-                            window::close(window_id).chain({
-                                let mut settings = Settings::default();
-                                settings.size = Size::new(MAIN_W, MAIN_H);
-                                window::open(settings).1.discard()
-                            })
-                        });
-                    } else {
-                        return window::get_latest().and_then(|window_id| -> Task<Message> {
-                            window::set_level::<Message>(window_id, window::Level::Normal)
-                                .chain(window::resize(window_id, Size::new(MAIN_W, MAIN_H)))
-                                .chain(window::toggle_decorations(window_id))
-                        });
-                    }
-                }
+                    Position::Default
+                };
+
+                // some systems might respond slightly better to moving the existing window rather than
+                // launching a new one but launching a new one seems to work more reliably across
+
+                let minify = window::get_latest().and_then(move |window_id| -> Task<Message> {
+                    let mut settings = Settings::default();
+                    settings.size = size;
+                    settings.position = position;
+                    settings.decorations = false;
+                    settings.level = Level::AlwaysOnTop;
+
+                    window::close(window_id).chain(window::open(settings).1.then(
+                        |new_id| -> Task<Message> {
+                            // the one specified in the settings don't work in Xorg, but this one works
+                            window::set_level(new_id, Level::AlwaysOnTop)
+                        },
+                    ))
+                });
+
+                let unminify = window::get_latest().and_then(move |window_id| -> Task<Message> {
+                    window::close(window_id).chain({
+                        let mut settings = Settings::default();
+                        settings.size = size;
+                        settings.position = position;
+
+                        window::open(settings).1.discard()
+                    })
+                });
+
+                let action = if self.mini_window { minify } else { unminify };
+
+                return action;
             }
             Message::ProjectSelected(id) => {
                 // If a session is active, save progress accrued for the old project
@@ -347,7 +394,11 @@ impl App {
             }
         }
 
-        Subscription::batch(vec![tick, keyboard::on_key_press(handle_hotkey)])
+        Subscription::batch(vec![
+            tick,
+            keyboard::on_key_press(handle_hotkey),
+            window::events().map(|ev| Message::StoreWindowGeometry { event: ev.1 }),
+        ])
     }
 
     fn title(&self) -> String {
