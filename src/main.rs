@@ -16,8 +16,8 @@ use iced::{
     theme::{Custom, Palette},
     time,
     widget::{
-        MouseArea, Space, button, center, center_x, checkbox, column, container, pick_list, row,
-        scrollable, slider, svg, text, text_input, tooltip,
+        MouseArea, Space, button, center, center_x, checkbox, column, container, pick_list, right,
+        row, scrollable, slider, stack, svg, text, text_input, tooltip,
     },
     window::{self, Level, Position, Settings},
 };
@@ -414,8 +414,13 @@ impl App {
     }
 
     fn mini_window_view(&self) -> Element<Message> {
-        let duration = text(self.pomo.countdown_string()).size(40);
-        column![center(duration)].into()
+        let mini_window_button = button("")
+            .height(10)
+            .width(10)
+            .on_press(Message::MiniWindowToggle);
+
+        let duration = text(self.pomo.countdown_string()).size(40).align_y(Center);
+        iced::widget::stack![center(duration), right(mini_window_button)].into()
     }
 
     fn main_tab_view(&self) -> Element<Message> {
