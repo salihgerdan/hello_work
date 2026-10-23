@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 160 160"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="resize-corner.svg"
+   width="160"
+   height="160"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.70022702"
+     inkscape:cx="74.26163"
+     inkscape:cy="46.413519"
+     inkscape:window-width="1018"
+     inkscape:window-height="540"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <!--!Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+  <path
+     d="M 160,32 C 160,14.3 145.7,0 128,0 110.3,0 96,14.3 96,32 V 96 H 32 c -17.7,0 -32,14.3 -32,32 0,17.7 14.3,32 32,32 h 96 c 17.7,0 32,-14.3 32,-32 z"
+     id="path1"
+     sodipodi:nodetypes="ssscssssss" />
+</svg>

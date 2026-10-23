@@ -16,8 +16,8 @@ use iced::{
     theme::{Custom, Palette},
     time,
     widget::{
-        MouseArea, Space, button, center, center_x, checkbox, column, container, pick_list, right,
-        row, scrollable, slider, stack, svg, text, text_input, tooltip,
+        MouseArea, Space, bottom, button, center, center_x, checkbox, column, container, pick_list,
+        right, row, scrollable, slider, stack, svg, text, text_input, tooltip,
     },
     window::{self, Level, Position, Settings},
 };
@@ -36,6 +36,7 @@ static CONFIG_ICON: &[u8] = include_bytes!("../img/wrench-solid-full.svg");
 static ADD_ICON: &[u8] = include_bytes!("../img/plus-solid-full.svg");
 static ARCHIVE_ICON: &[u8] = include_bytes!("../img/trash-can-regular-full.svg");
 static OKAY_ICON: &[u8] = include_bytes!("../img/check-solid-full.svg");
+static RESIZE_ICON: &[u8] = include_bytes!("../img/resize-corner.svg");
 static MINIMIZE_ICON: &[u8] = include_bytes!("../img/compress-solid-full.svg");
 
 fn svg_style(theme: &Theme, _status: iced::widget::svg::Status) -> iced::widget::svg::Style {
@@ -168,6 +169,7 @@ enum Message {
     NewTodoTask { name: String },
     EditTodoTask { id: usize, name: String },
     DeleteTodoTask { id: usize },
+    DragResize,
 }
 
 impl App {
@@ -194,6 +196,11 @@ impl App {
             Message::DragMove => {
                 return window::get_latest()
                     .and_then(|window_id: window::Id| window::drag::<Message>(window_id));
+            }
+            Message::DragResize => {
+                return window::get_latest().and_then(|window_id: window::Id| {
+                    window::drag_resize::<Message>(window_id, window::Direction::SouthEast)
+                });
             }
             Message::StoreWindowGeometry { event } => {
                 // This actually processes all window events, but we ignore the ones other than Resized and Moved
@@ -419,8 +426,23 @@ impl App {
             .width(10)
             .on_press(Message::MiniWindowToggle);
 
-        let duration = text(self.pomo.countdown_string()).size(40).align_y(Center);
-        iced::widget::stack![center(duration), right(mini_window_button)].into()
+        let resize_sign = svg(svg::Handle::from_memory(RESIZE_ICON))
+            .style(svg_style_primary)
+            .height(11)
+            .width(11);
+
+        let mouse_area = MouseArea::new(resize_sign).on_press(Message::DragResize);
+
+        let duration = text(self.pomo.countdown_string())
+            .size((self.pomo.config.get_mini_window_geometry().height - 5.0) * 0.9)
+            .align_y(Center);
+
+        iced::widget::stack![
+            center(duration).padding(0),
+            right(mini_window_button),
+            bottom(right(mouse_area))
+        ]
+        .into()
     }
 
     fn main_tab_view(&self) -> Element<Message> {
