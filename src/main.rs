@@ -267,6 +267,7 @@ impl App {
                     settings.position = position;
                     settings.decorations = false;
                     settings.level = Level::AlwaysOnTop;
+                    settings.maximized = false;
 
                     window::close(window_id).chain(window::open(settings).1.then(
                         |new_id| -> Task<Message> {
